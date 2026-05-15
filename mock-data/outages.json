@@ -1,0 +1,41 @@
+[
+  {
+    "outage_id": "OUT-2026-05-12-001",
+    "type": "mobile",
+    "zip_codes": [
+      "10001",
+      "10002",
+      "10003"
+    ],
+    "service_affected": "mobile_data_and_voice",
+    "started_at": "2026-05-12T14:30:00Z",
+    "estimated_resolution": "2026-05-13T18:00:00Z",
+    "status": "active",
+    "description": "Tower maintenance affecting mobile data and voice in lower Manhattan"
+  },
+  {
+    "outage_id": "OUT-2026-05-13-001",
+    "type": "home_internet",
+    "zip_codes": [
+      "94103",
+      "94110"
+    ],
+    "service_affected": "home_internet",
+    "started_at": "2026-05-13T08:15:00Z",
+    "estimated_resolution": "2026-05-13T20:00:00Z",
+    "status": "active",
+    "description": "Fiber cable damage during construction in San Francisco Mission District"
+  },
+  {
+    "outage_id": "OUT-2026-05-13-002",
+    "type": "mobile",
+    "zip_codes": [
+      "75201"
+    ],
+    "service_affected": "mobile_data",
+    "started_at": "2026-05-13T11:00:00Z",
+    "estimated_resolution": "2026-05-13T15:00:00Z",
+    "status": "active",
+    "description": "Brief network upgrade in downtown Dallas, mobile data only"
+  }
+]
