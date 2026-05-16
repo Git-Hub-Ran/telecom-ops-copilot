@@ -3,7 +3,7 @@ build_kb_upload_notebook.py
 
 Generates the Foundry KB upload and retrieval test notebook.
 
-This notebook handles Day 3 of the project: connecting to Azure AI Foundry,
+This notebook handles the Foundry setup work: connecting to Azure AI Foundry,
 uploading the 16 KB markdown files into file search, and verifying retrieval
 works on 10 sample queries before we start building the state machine.
 """
@@ -32,7 +32,7 @@ cells = []
 cells.append(md(
     "# Telecom Ops Copilot - KB Upload and Retrieval Test\n",
     "\n",
-    "This notebook is the second one in the project. It does the work of Day 3:\n",
+    "This notebook is the Foundry setup notebook. It does the following:\n",
     "\n",
     "1. Connects to your Azure AI Foundry project (sign in via device code)\n",
     "2. Fetches the 16 KB markdown files from your GitHub repo\n",
@@ -373,7 +373,7 @@ cells.append(md(
     "\n",
     "## What comes next\n",
     "\n",
-    "Day 4-5 work: build the state machine and tool functions. The classifier, act, escalate, and respond agents will be defined in code (one Python module per agent), and Microsoft Agent Framework will wire them together.\n",
+    "Next: build the state machine and tool functions. The classifier, act, escalate, and respond agents will be defined in code (one Python module per agent), and Microsoft Agent Framework will wire them together.\n",
 ))
 
 
