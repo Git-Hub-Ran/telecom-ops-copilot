@@ -266,7 +266,7 @@ cells.append(md(
     "- Your KB files in GitHub can be fetched on demand\n",
     "- The model can answer grounded questions and (hopefully) decline ungrounded ones\n",
     "\n",
-    "## What comes next (after mentor approves the updated plan)\n",
+    "## What comes next\n",
     "\n",
     "1. Set up Azure AI Foundry Agent Service (a Foundry project + an agent definition)\n",
     "2. Migrate the grounded-chat pattern into a Foundry agent with file search\n",
