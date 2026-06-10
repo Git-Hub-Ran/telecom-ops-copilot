@@ -4,7 +4,7 @@ This module provides the create_escalation_ticket function, which creates
 a structured escalation payload for handoff to human support representatives.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -223,7 +223,7 @@ def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
     try:
         # Auto-generate escalation_id if not provided
         if "escalation_id" not in payload:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             # Format: ESC-YYYYMMDD-HHMMSS-XXXX
             import random
 
@@ -234,7 +234,7 @@ def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
 
         # Auto-generate created_at if not provided
         if "created_at" not in payload:
-            payload["created_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            payload["created_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Validate and parse the payload using Pydantic
         ticket = EscalationPayload(**payload)
