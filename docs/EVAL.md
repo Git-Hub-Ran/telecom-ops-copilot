@@ -197,7 +197,7 @@ The project target is met when ALL of the following are true on the full test se
 | Escalation precision | >= 85 percent |
 | Escalation recall | >= 80 percent |
 | Deflection rate on `standard` set | 30 to 40 percent |
-| Average response latency | <= 5 seconds |
+| Response latency (p95) | <= 5 seconds |
 
 If a metric is missed at the baseline run, the failure analysis identifies the top 3 categories of failures. Those become the prioritized fixes for the next iteration. After fixes, the full eval is re-run.
 
