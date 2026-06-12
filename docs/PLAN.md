@@ -94,6 +94,74 @@ The key idea: **the model does not drive the high-level flow**. The state machin
 
 ---
 
+## 3a. Why orchestration, not multi-agent
+
+This project uses a single orchestrator with a deterministic state machine, not a multi-agent system where multiple LLMs coordinate dynamically. The decision is deliberate and grounded in the problem structure.
+
+### When multi-agent is the right pattern
+
+Multi-agent architectures excel when:
+
+1. **Long-running parallel work**: Multiple tasks run concurrently with different completion times. Example: A travel agent spawns one agent to search flights, another for hotels, a third for car rentals, all running in parallel and reporting back when done.
+
+2. **Specialized agent teams**: Different agents have distinct expertise or tool access. Example: A data analysis system where one agent handles SQL queries, another handles Python computation, and a coordinator delegates based on the question type.
+
+3. **Dynamic agent selection**: The set of agents or their roles changes based on runtime conditions. Example: A customer service system that spawns region-specific agents based on detected language or location.
+
+4. **Iterative refinement loops**: Agents critique each other's work or build on partial results. Example: A writing assistant where one agent drafts, another critiques, and they iterate until quality thresholds are met.
+
+### Why orchestration is better for THIS project
+
+This copilot handles a **single customer query** through a **sequential decision flow**:
+
+- Classify intent (1 LLM call)
+- Route to the correct path (deterministic Python logic)
+- Act on the query (1 LLM call, possibly with tool calls)
+- Escalate if needed (1 LLM call)
+- Respond to the customer (1 LLM call)
+
+The flow is **linear**, not parallel. Each state depends on the previous state's output. There is no long-running work, no need for specialized teams, and no dynamic agent selection.
+
+**Key observation**: The query is answered in under 5 seconds (p95 latency target). Spawning multiple agents, coordinating them, and managing their handoffs would add latency and complexity without improving the outcome.
+
+### How this could extend to multi-agent if needed
+
+If requirements changed, the architecture supports extension to multi-agent:
+
+**Example 1: Parallel cross-vendor lookups**
+
+During the Act state, if the query requires data from multiple external vendors (e.g., check both Verizon and AT&T network status), the Act state could spawn parallel agents:
+
+```python
+async def act_with_parallel_vendors(query):
+    # Spawn two agents in parallel
+    verizon_task = asyncio.create_task(verizon_agent.check_outage(zip_code))
+    att_task = asyncio.create_task(att_agent.check_outage(zip_code))
+    
+    # Wait for both to complete
+    verizon_result, att_result = await asyncio.gather(verizon_task, att_task)
+    
+    # Aggregate results
+    return aggregate_outage_data([verizon_result, att_result])
+```
+
+This keeps orchestration in charge but uses parallelism where it adds value.
+
+**Example 2: Escalation triage team**
+
+If escalations became complex enough to require multiple specialist agents (billing specialist, technical specialist, retention specialist), the Escalate state could route to a triage coordinator that selects the right specialist agent based on intent.
+
+**Why not do this now**: The current scope has 5 intents, 5 tools, and straightforward resolution logic. Adding multi-agent coordination would be premature complexity. The orchestration pattern delivers the required latency and accuracy with less surface area for bugs.
+
+### Decision summary
+
+- **Chosen**: Single orchestrator with deterministic state machine
+- **Rationale**: Sequential flow, tight latency budget, no parallelism needed
+- **Future path**: Act state can spawn parallel agents if cross-vendor lookups are added
+- **Not chosen**: Full multi-agent with dynamic coordination (overengineered for this problem)
+
+---
+
 ## 4. The state machine
 
 Each state has a clear contract: input, output, what is deterministic, what is LLM-driven.

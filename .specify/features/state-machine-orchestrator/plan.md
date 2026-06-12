@@ -643,11 +643,85 @@ See `quickstart.md` (generated separately, runnable end-to-end test scenarios).
 
 ---
 
+## Phase 2.13: Wire One Tool to Real Data Source
+
+**Goal**: Demonstrate database integration pattern by migrating `get_billing_info` from JSON file to SQLite, while keeping other tools on mock JSON.
+
+**Rationale**: 
+- Billing data is time-series (multiple records per customer), demonstrating the most data engineering value
+- SQLite is file-based, simple, zero Azure cost, but same code pattern works with Azure SQL Database in production
+- Introduces DataSource abstraction for swappable backends (JSON vs SQLite vs future Azure SQL)
+- Validates that the tool integration pattern supports real databases without breaking existing tools
+
+**Tasks**:
+
+1. **Create DataSource abstraction** in `src/data/base.py`:
+   - Define `DataSource` abstract base class with `get_billing_records(account_id, months)` method
+   - Allows swapping between JSON and database implementations
+
+2. **Implement JSON DataSource** in `src/data/json_source.py`:
+   - `JSONDataSource` class reads from `mock-data/billing.json`
+   - Maintains current behavior (default for other 4 tools)
+
+3. **Implement SQLite DataSource** in `src/data/sqlite_source.py`:
+   - `SQLiteDataSource` class reads from `data/billing.db`
+   - Schema: `billing_records` table with columns: account_id, bill_month, amount_due, due_date, status, line_items (JSON)
+   - Uses Python `sqlite3` module (built-in, no new dependencies)
+
+4. **Create SQLite schema and seed data** in `scripts/setup_billing_db.py`:
+   - Read `mock-data/billing.json`
+   - Create `data/billing.db` with schema
+   - Insert all billing records from JSON into SQLite
+   - Script is idempotent (drop and recreate on each run)
+
+5. **Update `src/tools/billing.py`**:
+   - Import `DataSource` abstraction
+   - Load data source from config: `config.BILLING_DATA_SOURCE` (default "json", optional "sqlite")
+   - Factory pattern: `get_data_source()` returns `JSONDataSource` or `SQLiteDataSource` based on config
+   - No changes to tool function signature or output format
+
+6. **Add config field** in `src/config.py`:
+   - `BILLING_DATA_SOURCE: str = "json"` (default JSON for backward compatibility)
+   - `BILLING_DB_PATH: str = "data/billing.db"` (SQLite path if enabled)
+
+7. **Update tests** in `tests/test_tools_billing.py`:
+   - Add test for SQLite data source (create temp SQLite DB, insert test data, verify tool reads correctly)
+   - Existing JSON tests continue to pass (default behavior unchanged)
+   - Add integration test that runs same query against both data sources, verifies identical output
+
+8. **Documentation**:
+   - Add `docs/DATA_SOURCES.md` explaining the DataSource pattern
+   - Document migration path: SQLite locally → Azure SQL Database in production (same code, different connection string)
+   - Explain why other 4 tools stay on JSON (simple lookups, no time-series data)
+
+**Validation**: 
+- All existing billing tests pass
+- New SQLite tests pass
+- `get_billing_info` works with both JSON and SQLite data sources
+- Config switch controls which source is used
+- No changes required to orchestrator or other tools
+
+**Estimated effort**: 2-3 days
+
+**Migration path to production**:
+```python
+# Local development (SQLite):
+BILLING_DATA_SOURCE=sqlite
+BILLING_DB_PATH=data/billing.db
+
+# Production (Azure SQL Database):
+BILLING_DATA_SOURCE=azure_sql
+AZURE_SQL_CONNECTION_STRING=<connection-string>
+# Code: Same DataSource abstraction, new AzureSQLDataSource class
+```
+
+---
+
 # Total Estimated Effort
 
-**24 days** (assumes 1 developer, 8-hour days, includes testing and iteration).
+**27 days** (assumes 1 developer, 8-hour days, includes testing and iteration).
 
-**Critical path**: Phase 2.9 (StateMachine) depends on all prior phases. Phases 2.3 to 2.8 can proceed in parallel after 2.4 (AgentFactory) is complete.
+**Critical path**: Phase 2.9 (StateMachine) depends on all prior phases. Phases 2.3 to 2.8 can proceed in parallel after 2.4 (AgentFactory) is complete. Phase 2.13 (SQLite integration) can proceed in parallel with Phase 2.10-2.12.
 
 ---
 
