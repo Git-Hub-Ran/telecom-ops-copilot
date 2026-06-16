@@ -411,7 +411,7 @@ See `quickstart.md` (generated separately, runnable end-to-end test scenarios).
    - Contains: Foundry credentials, model assignments, thresholds, mock data paths
    - All orchestrator components import from `src.config`
 3. Implement `BaseState` abstract class in `src/orchestrator/states/base.py`
-4. Implement structured JSON logging utility (`src/orchestrator/logging/structured.py`)
+4. Implement structured JSON logging utility (`src/orchestrator/observability/structured.py`)
 5. Write unit tests for config and logging
 
 **Validation**: Config loads from .env, logging emits valid JSON to stdout.

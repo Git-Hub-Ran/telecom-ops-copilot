@@ -24,7 +24,7 @@
   - `src/orchestrator/states/` with `__init__.py`
   - `src/orchestrator/models/` with `__init__.py`
   - `src/orchestrator/agents/` with `__init__.py`
-  - `src/orchestrator/logging/` with `__init__.py`
+  - `src/orchestrator/observability/` with `__init__.py`
   - `tests/orchestrator/` with `__init__.py`
 
 - [ ] T002 Verify directory structure and Python package recognition
@@ -54,7 +54,7 @@
   - Include comments explaining each variable
   - Add note: "Copy to .env and fill in real values"
 
-**Validation**: `from src.config import config` works, config loads from .env
+**Validation**: `from src.config import get_config` works, config loads from .env
 
 ---
 
@@ -80,7 +80,7 @@
 
 **Dependencies**: Phase 1 complete, config exists (T003)
 
-- [ ] T006 Create `src/orchestrator/logging/structured.py` with StructuredLogger class
+- [ ] T006 Create `src/orchestrator/observability/structured.py` with StructuredLogger class
   - Import: logging, json, datetime
   - Method: `log_event(event_type: str, **kwargs)` 
   - Output format: one JSON object per line to stdout
@@ -88,7 +88,7 @@
   - Optional fields: correlation_id, session_id, duration_ms, any kwargs
   - Use `print()` for stdout output (not logging.StreamHandler to avoid framework overhead)
 
-- [ ] T007 Create convenience functions in `src/orchestrator/logging/structured.py`
+- [ ] T007 Create convenience functions in `src/orchestrator/observability/structured.py`
   - `log_state_transition(from_state, to_state, decision_reason, duration_ms, **kwargs)`
   - `log_tool_call(tool_name, success, duration_ms, **kwargs)`
   - `log_classification_result(intent, confidence, **kwargs)`
@@ -150,7 +150,7 @@
 - [ ] T011 Create `tests/orchestrator/test_scaffolding_integration.py` with 5 tests
   - Test: Import config from src.config works
   - Test: Import BaseState from src.orchestrator.states.base works
-  - Test: Import structured logging from src.orchestrator.logging.structured works
+  - Test: Import structured logging from src.orchestrator.observability.structured works
   - Test: Create concrete state subclass, verify it can access config
   - Test: Log event with correlation_id, verify JSON output contains it
 
@@ -210,6 +210,6 @@ Phase 6 (Integration)
 **Deliverables**:
 - `src/config.py` (single project config)
 - `src/orchestrator/states/base.py` (BaseState abstract class)
-- `src/orchestrator/logging/structured.py` (JSON logging utility)
+- `src/orchestrator/observability/structured.py` (JSON logging utility)
 - `.env.example` (config template)
 - 5 test files with ~15-20 passing tests

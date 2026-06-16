@@ -160,10 +160,10 @@ config = Config()
 
 **Usage in orchestrator**:
 ```python
-from src.config import config
+from src.config import get_config
 
 # In AgentFactory
-self.classifier_model = config.CLASSIFIER_MODEL
+self.classifier_model = get_config().CLASSIFIER_MODEL
 ```
 
 ---
