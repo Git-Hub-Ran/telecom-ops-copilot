@@ -82,7 +82,7 @@ class ClassifyOutput(BaseModel):
 
 ---
 
-## 3. RoutingDecision (FR-010, FR-011, FR-012)
+## 3. RoutingDecision (FR-010, FR-011)
 
 **Purpose**: Output from RouteState, determines next action.
 

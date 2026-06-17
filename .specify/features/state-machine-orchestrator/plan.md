@@ -445,7 +445,7 @@ See `quickstart.md` (generated separately, runnable end-to-end test scenarios).
 
 **Tasks**:
 1. Implement `RouteState` class in `src/orchestrator/states/route.py`
-2. Routing logic per FR-010 to FR-012:
+2. Routing logic per FR-010 and FR-011:
    - confidence < 0.6 → `ask_clarifying_question`
    - off_topic=True → `refuse_off_topic`
    - intent="escalate" → `skip_to_escalate`
@@ -454,7 +454,7 @@ See `quickstart.md` (generated separately, runnable end-to-end test scenarios).
    - intent="account" → `account_path`
    - intent="info" → `info_path`
    - intent="unknown" → `skip_to_escalate`
-3. Write unit tests covering all 9 routing paths
+3. Write unit tests covering all 8 routing paths
 
 **Validation**: All routing decisions match spec requirements, 100% branch coverage.
 

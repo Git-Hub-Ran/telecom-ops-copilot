@@ -298,7 +298,7 @@ Phase 6 (Integration)
 
 ---
 
-## Routing Models (FR-010, FR-011, FR-012)
+## Routing Models (FR-010, FR-011)
 
 **Purpose**: Routing decision enum
 
@@ -552,3 +552,166 @@ Phase 2.2 (Pydantic Data Contracts)
 - 6 test files in `tests/orchestrator/test_models/` with 45 passing tests
 - Clean package exports via `__init__.py`
 - Full validation coverage (required fields, enums, ranges, optional fields)
+
+---
+
+# Phase 2.3: RouteState (T027-T030)
+
+**Input**: `contracts/route-contract.md`, data-model.md, FR-010 and FR-011
+
+**Scope**: Phase 2.3 (RouteState) only - Pure Python routing logic (no LLM/agent)
+
+**Prerequisites**: Phase 2.2 complete (Pydantic models available: ClassifyOutput, RoutingDecision)
+
+**Organization**: RouteState is deterministic Python logic with 100% test coverage
+
+---
+
+## RouteState Implementation
+
+**Purpose**: Map ClassifyOutput to RoutingDecision using deterministic rules
+
+**Dependencies**: Phase 2.2 complete (ClassifyOutput and RoutingDecision models exist)
+
+- [ ] T027 Create `src/orchestrator/states/route.py` with RouteState class
+  - Import: `from src.orchestrator.states.base import BaseState`
+  - Import: `from src.orchestrator.models import ClassifyOutput, RoutingDecision, StateContext`
+  - Class: `RouteState(BaseState[StateContext, RoutingDecision])`
+  - Implement: `async def run(self, context: StateContext) -> RoutingDecision`
+  - Routing logic (per route-contract.md):
+    - If `classify_output.off_topic is True` → return `RoutingDecision.REFUSE_OFF_TOPIC`
+    - If `classify_output.confidence < 0.6` → return `RoutingDecision.ASK_CLARIFYING_QUESTION`
+    - If `classify_output.intent == "escalate"` → return `RoutingDecision.SKIP_TO_ESCALATE`
+    - If `classify_output.intent == "unknown"` → return `RoutingDecision.SKIP_TO_ESCALATE`
+    - If `classify_output.intent == "billing"` → return `RoutingDecision.BILLING_PATH`
+    - If `classify_output.intent == "technical"` → return `RoutingDecision.TECHNICAL_PATH`
+    - If `classify_output.intent == "account"` → return `RoutingDecision.ACCOUNT_PATH`
+    - If `classify_output.intent == "info"` → return `RoutingDecision.INFO_PATH`
+  - Add module docstring explaining pure Python routing (no LLM dependency)
+  - Add class docstring with routing decision table
+  - Add validation: raise ValueError if context.classify_output is None
+  - Reference FR-010 and FR-011 in docstring
+
+**Validation**: RouteState instantiates and has async run() method
+
+---
+
+## RouteState Tests
+
+**Purpose**: 100% branch coverage of routing logic (all 8 paths)
+
+**Dependencies**: T027 complete (RouteState implemented)
+
+- [ ] T028 Create `tests/orchestrator/test_states/test_route.py` with 11 tests
+  - Create `tests/orchestrator/test_states/` directory with `__init__.py` if needed
+  - Test 1: off_topic=True returns REFUSE_OFF_TOPIC (priority: off_topic checked first)
+  - Test 2: confidence=0.5 returns ASK_CLARIFYING_QUESTION (priority: confidence checked second)
+  - Test 3: intent="escalate" returns SKIP_TO_ESCALATE
+  - Test 4: intent="unknown" returns SKIP_TO_ESCALATE
+  - Test 5: intent="billing" returns BILLING_PATH
+  - Test 6: intent="technical" returns TECHNICAL_PATH
+  - Test 7: intent="account" returns ACCOUNT_PATH
+  - Test 8: intent="info" returns INFO_PATH
+  - Test 9: classify_output=None raises ValueError (validation check)
+  - Test 10: confidence=0.6 exactly (boundary test, should NOT trigger clarification)
+  - Test 11: confidence=0.59 (boundary test, SHOULD trigger clarification)
+  - **Test breakdown: 8 routing path tests + 2 boundary tests + 1 validation test = 11 tests total**
+  - Run pytest on test_route.py, verify 11 tests pass
+
+**Validation**: 11 tests pass, 100% branch coverage of routing logic
+
+---
+
+## RouteState Integration Test
+
+**Purpose**: Verify RouteState works with real StateContext and models
+
+**Dependencies**: T027-T028 complete
+
+- [ ] T029 Create `tests/orchestrator/test_states/test_route_integration.py` with 3 tests
+  - Test 1: End-to-end routing flow
+    - Create SessionState
+    - Create StateContext with classify_output (intent="billing", confidence=0.92)
+    - Instantiate RouteState
+    - Call route_state.run(context)
+    - Verify returns RoutingDecision.BILLING_PATH
+    - Verify result is an enum value (not string)
+  - Test 2: Priority order verification (off_topic beats confidence)
+    - Create ClassifyOutput with off_topic=True AND confidence=0.3
+    - Verify REFUSE_OFF_TOPIC is returned (not ASK_CLARIFYING_QUESTION)
+  - Test 3: Priority order verification (confidence beats intent)
+    - Create ClassifyOutput with confidence=0.5 AND intent="billing"
+    - Verify ASK_CLARIFYING_QUESTION is returned (not BILLING_PATH)
+  - Run pytest on test_route_integration.py, verify 3 tests pass
+
+**Validation**: 3 integration tests pass
+
+---
+
+## Phase 2.3 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.3 tests pass together with prior phases
+
+**Dependencies**: T027-T029 complete
+
+- [ ] T030 Run full orchestrator test suite
+  - Run `pytest tests/orchestrator/ -v`
+  - Verify all tests pass (67 from Phase 2.1+2.2 + 14 from Phase 2.3 = 81 total)
+  - Verify no import errors
+  - Verify test output is clean (no warnings)
+
+**Validation**: 81 tests pass (67 previous + 14 new)
+
+---
+
+## Phase 2.3 Completion Checklist
+
+Phase 2.3 (RouteState) is complete when:
+
+- [ ] RouteState class implemented in `src/orchestrator/states/route.py`
+- [ ] All 8 routing paths covered by unit tests (11 tests total including boundary cases and validation)
+- [ ] 3 integration tests verify StateContext integration
+- [ ] Running `pytest tests/orchestrator/test_states/` shows 14 passing tests
+- [ ] Full orchestrator suite shows 81 passing tests (67 + 14)
+- [ ] No import errors when importing from src.orchestrator.states
+- [ ] RouteState has docstring with routing decision table and FR references
+
+**Expected test count**: 14 tests (11 unit + 3 integration)
+
+---
+
+## Phase 2.3 Next Steps
+
+After Phase 2.3 is complete and committed:
+- Phase 2.4 will implement AgentFactory and system prompts (no state implementation yet)
+- Phase 2.5+ will implement the 4 remaining states (ClassifyState, ActState, EscalateState, RespondState)
+
+---
+
+## Phase 2.3 Dependencies
+
+```
+Phase 2.2 (Pydantic Data Contracts)
+  ↓
+Phase 2.3 (RouteState)
+  │
+  ├─> T027 (RouteState implementation)
+  │     ↓
+  ├─> T028 (Unit tests - 11 tests)
+  │     ↓
+  ├─> T029 (Integration tests - 3 tests)
+  │     ↓
+  └─> T030 (Full test suite validation)
+```
+
+**Parallel opportunities**: None (RouteState is small and linear)
+
+---
+
+**Phase 2.3 Total tasks**: 4 tasks (T027-T030)
+**Estimated effort**: 1 day (per plan.md Phase 2.3)
+**Deliverables**:
+- `src/orchestrator/states/route.py` (RouteState class)
+- `tests/orchestrator/test_states/test_route.py` (11 unit tests)
+- `tests/orchestrator/test_states/test_route_integration.py` (3 integration tests)
+- 14 passing tests (100% branch coverage of routing logic)

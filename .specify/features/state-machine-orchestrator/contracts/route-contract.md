@@ -58,4 +58,4 @@ def route(classify_output: ClassifyOutput) -> RoutingDecision:
 
 ## Testing
 
-Unit tests must cover all 9 routing paths (100% branch coverage).
+Unit tests must cover all 8 routing paths (100% branch coverage).
