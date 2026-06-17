@@ -170,11 +170,11 @@ self.classifier_model = get_config().CLASSIFIER_MODEL
 
 ## 6. Session State Schema
 
-**Decision**: Pydantic model `SessionState` with conversation history (last 5 turns), extracted entities, correlation_id.
+**Decision**: Pydantic model `SessionState` with conversation history (last 10 turns per FR-055), extracted entities, correlation_id.
 
 **Rationale**:
 - FR-053: session state must persist account_id, detected_emotion, conversation history
-- FR-054: conversation history includes last 5 turns (message + response pairs)
+- FR-055: conversation history includes last 10 turns (rolling window, each turn is one message)
 - Pydantic ensures type safety at state boundaries (FR-046)
 
 **Alternatives considered**:
@@ -193,7 +193,7 @@ class SessionState(BaseModel):
     correlation_id: str  # Unique per turn (FR-051)
     account_id: Optional[str] = None
     detected_emotion: Optional[str] = None
-    conversation_history: list[ConversationTurn] = []  # Last 5 turns
+    conversation_history: list[ConversationTurn] = []  # Last 10 turns (FR-055)
     started_at: str
     last_updated: str
 ```
