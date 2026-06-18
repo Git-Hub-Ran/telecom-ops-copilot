@@ -1,1 +1,1 @@
-"""Foundry agent factory and system prompts."""
+"""Foundry agent creation and management."""
