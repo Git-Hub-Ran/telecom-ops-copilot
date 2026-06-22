@@ -14,6 +14,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from src.tools.escalation import CreateEscalationTicketResult
+
 from .act import ActOutput
 from .classify import ClassifyOutput
 from .route import RoutingDecision
@@ -33,7 +35,7 @@ class StateContext(BaseModel):
     - ClassifyState reads customer_message and session_state, populates classify_output
     - RouteState reads classify_output, populates routing_decision
     - ActState reads routing_decision and customer_message, populates act_output
-    - EscalateState reads classify_output and act_output (if triggered)
+    - EscalateState reads classify_output and act_output, populates escalate_output (if triggered)
     - RespondState reads all fields to generate the final response
 
     Required fields are populated at context creation. Optional fields start as None
@@ -57,4 +59,8 @@ class StateContext(BaseModel):
     act_output: Optional[ActOutput] = Field(
         default=None,
         description="Act result from ActState (None until ActState runs)"
+    )
+    escalate_output: Optional[CreateEscalationTicketResult] = Field(
+        default=None,
+        description="Escalation ticket result from EscalateState (None until EscalateState runs)"
     )
