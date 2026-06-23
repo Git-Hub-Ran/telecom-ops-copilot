@@ -1322,3 +1322,255 @@ Phase 2.6 (ActState)
 - `src/orchestrator/states/act.py` (ActState, 4 path methods, retry helper, KB agent method)
 - `tests/orchestrator/test_states/test_act.py` (~20 tests across 5 classes)
 - ~20 passing tests (all routing paths, both error modes, retry logic, TECHNICAL_PATH sequencing, mutation contract)
+
+# Phase 2.7: EscalateState (T042-T044)
+
+**Goal**: Implement EscalateState, which handles two escalation trigger paths
+(SKIP_TO_ESCALATE with no act_output, and post-Act unresolved with act_output
+populated). Invokes the EscalateAgent via Foundry thread/run to generate
+free-text summary and suggested_next_action, assembles the full EscalationPayload
+from context fields, then calls create_escalation_ticket. Returns
+CreateEscalationTicketResult directly. Never drops an escalation silently.
+
+**Key decisions (confirmed in pre-implementation review)**:
+- Two trigger paths: SKIP_TO_ESCALATE (act_output is None, routing bypassed Act)
+  and post-Act unresolved (act_output.resolution_status == "unresolved").
+- Context fields read: session_state.session_id, session_state.started_at,
+  session_state.account_id, session_state.correlation_id,
+  session_state.conversation_history, session_state.detected_emotion,
+  session_state.channel, customer_message, classify_output (optional),
+  act_output (optional), routing_decision (optional, for reason_code selection).
+- Sequence: build structured context dict from StateContext, invoke EscalateAgent
+  via Foundry thread/run to get summary and suggested_next_action, assemble full
+  payload, call create_escalation_ticket(payload) wrapped in asyncio.to_thread.
+- Agent fallback: if EscalateAgent invocation fails, use hardcoded defaults
+  ("Agent unavailable - manual review required") for both free-text fields and
+  still call create_escalation_ticket. Escalation must not drop silently.
+- reason_code selection: "tool_failure" when act_output is unresolved;
+  "customer_frustration" when detected_emotion is "frustrated" or "angry";
+  "out_of_scope" when routing_decision is SKIP_TO_ESCALATE and classify_output
+  intent is "escalate" or "unknown"; "unresolved_ambiguity" as default fallback.
+- Returns CreateEscalationTicketResult directly (no separate EscalateOutput model;
+  context.escalate_output is typed Optional[CreateEscalationTicketResult]).
+- Pure function: does not mutate context. StateMachine sets
+  context.escalate_output after run() returns.
+- classify_output may be None (direct escalation with no prior classification);
+  intent.primary defaults to "unknown" and confidence to 0.0 in that case.
+
+**Dependencies**: Phase 2.6 complete (ActState, all models, structured logging
+available). channel field added to SessionState (bd14126).
+
+---
+
+## T042: EscalateState Implementation
+
+**Purpose**: Escalation state that assembles a structured ticket from context,
+invokes the EscalateAgent for free-text fields, and persists the ticket via
+create_escalation_ticket.
+
+**Dependencies**: Phase 2.6 complete.
+
+- [ ] T042 Create `src/orchestrator/states/escalate.py` with EscalateState class
+  - Imports: `asyncio`, `AgentFactory` from `src.orchestrator.agents.factory`,
+    `ClassifyOutput`, `ActOutput`, `StateContext`, `RoutingDecision` from
+    `src.orchestrator.models`, `StructuredLogger` from
+    `src.orchestrator.observability.structured`, `BaseState` from
+    `src.orchestrator.states.base`, `create_escalation_ticket`,
+    `CreateEscalationTicketResult` from `src.tools.escalation`
+  - FR-037 injection guard in EscalateAgent system prompt (enforced in AgentFactory;
+    confirm it is present when reviewing factory output)
+  - Class: `EscalateState(BaseState[StateContext, CreateEscalationTicketResult])`
+  - `__init__(self, agent_factory: AgentFactory)`: stores factory, creates
+    StructuredLogger
+  - `run(self, context: StateContext) -> CreateEscalationTicketResult` (async):
+      Reads all required fields from context (see key decisions above)
+      Calls `_select_reason_code(context)` to determine reason_code
+      Calls `_build_agent_prompt(context)` to build the prompt string for
+      EscalateAgent
+      Invokes EscalateAgent via `await asyncio.to_thread(self._invoke_agent,
+      content)` to get raw JSON with summary and suggested_next_action; on any
+      exception, uses hardcoded fallback strings and logs the error
+      Assembles full payload dict via `_build_payload(...)` from context fields
+      and agent output
+      Calls `await asyncio.to_thread(create_escalation_ticket, payload)` and
+      returns the result
+      Logs escalation_triggered event via StructuredLogger (FR-052)
+      Does not mutate context
+  - `_select_reason_code(self, context: StateContext) -> str`:
+      Returns "tool_failure" if act_output is not None and
+      act_output.resolution_status == "unresolved"
+      Returns "customer_frustration" if detected_emotion is "frustrated" or "angry"
+      Returns "out_of_scope" if routing_decision is SKIP_TO_ESCALATE and
+      classify_output intent is "escalate" or "unknown"
+      Returns "unresolved_ambiguity" as default
+  - `_build_agent_prompt(self, context: StateContext) -> str`:
+      Formats a structured text prompt for the EscalateAgent including intent,
+      reason_code, tools_called summary (from act_output if present), and
+      conversation history
+      Returns the formatted string
+  - `_invoke_agent(self, content: str) -> str` (sync):
+      Uses self.factory.agents_client and self.factory.get_escalate_agent()
+      Same SDK call sequence as ClassifyState._invoke_agent: create_thread ->
+      create_message -> create_and_process_run -> list_messages -> extract
+      assistant text
+      Raises RuntimeError if no assistant text found
+  - `_build_payload(self, context: StateContext, summary: str,
+    suggested_next_action: str, reason_code: str) -> dict`:
+      Assembles the full dict for EscalationPayload including all required fields
+      Maps session_state.conversation_history to transcript list
+      Maps act_output.tools_called to tools_called list (empty list if act_output
+      is None)
+      Maps act_output.kb_citations to kb_citations list (empty list if act_output
+      is None)
+      Maps classify_output to intent dict (defaults to primary="unknown",
+      confidence=0.0, secondary=[] if classify_output is None)
+      Maps detected_emotion to customer_emotion dict (defaults to
+      sentiment="neutral", indicators=[] if detected_emotion is None)
+      Sets session.channel from session_state.channel
+  - Add module docstring referencing FR-052
+  - Add class and method docstrings with Args, Returns, Raises sections
+
+**Validation**: EscalateState instantiates with mocked factory, run() is async,
+all helper methods exist
+
+---
+
+## T043: EscalateState Tests
+
+**Purpose**: Unit tests covering both trigger paths, agent fallback, ticket
+creation failure, mutation contract, and missing classify_output edge case.
+
+**Dependencies**: T042 complete.
+
+- [ ] T043 Create `tests/orchestrator/test_states/test_escalate.py` with ~12 tests
+  - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
+    VECTOR_STORE_ID; clears get_config cache
+  - Fixtures:
+    - `mock_factory`: MagicMock spec=AgentFactory, escalate agent
+      id="agent-escalate-001"
+    - `state`: EscalateState with mock_factory
+    - `session`: SessionState with session_id, correlation_id, account_id,
+      started_at, last_updated, channel="chat", conversation_history=[],
+      detected_emotion=None
+    - `classify_out`: ClassifyOutput(intent="billing", confidence=0.92,
+      off_topic=False, detected_emotion=None)
+    - `skip_context`: StateContext with routing_decision=SKIP_TO_ESCALATE,
+      classify_output=classify_out, act_output=None
+    - `unresolved_context`: StateContext with routing_decision=BILLING_PATH,
+      classify_output=classify_out, act_output=ActOutput(
+      resolution_status="unresolved", tools_called=[], kb_citations=[],
+      error_details="data_unavailable")
+  - Agent response helper: `_agent_json(summary, suggested_next_action)` returns
+    JSON string
+  - Ticket result helper: `_ticket_ok()` returns
+    CreateEscalationTicketResult(success=True, ticket=MagicMock())
+  - Ticket failure helper: `_ticket_fail()` returns
+    CreateEscalationTicketResult(success=False, error_code="validation_failed",
+    error_message="bad payload")
+  - **TestEscalateStateHappyPaths** (2 tests):
+    - `test_skip_to_escalate_path`: patch _invoke_agent -> valid agent JSON; patch
+      create_escalation_ticket -> _ticket_ok(); assert result.success is True
+    - `test_post_act_unresolved_path`: same patches with unresolved_context; assert
+      result.success is True; assert create_escalation_ticket was called
+  - **TestEscalateStateAgentFallback** (2 tests):
+    - `test_agent_failure_still_calls_create_ticket`: patch _invoke_agent ->
+      raises RuntimeError; patch create_escalation_ticket -> _ticket_ok(); assert
+      create_escalation_ticket called once; assert result.success is True
+    - `test_agent_failure_uses_hardcoded_summary`: same setup; inspect the payload
+      dict passed to create_escalation_ticket; assert summary contains
+      "manual review" (fallback text)
+  - **TestEscalateStateTicketFailure** (1 test):
+    - `test_ticket_creation_failure_returns_result`: patch _invoke_agent -> valid
+      JSON; patch create_escalation_ticket -> _ticket_fail(); assert
+      result.success is False; assert result.error_code == "validation_failed"
+  - **TestEscalateStateReasonCode** (3 tests):
+    - `test_reason_code_tool_failure_when_act_unresolved`: unresolved_context;
+      assert reason_code in assembled payload is "tool_failure"
+    - `test_reason_code_out_of_scope_for_skip_to_escalate`: skip_context with
+      intent="escalate"; assert reason_code is "out_of_scope"
+    - `test_reason_code_customer_frustration`: session with
+      detected_emotion="frustrated"; assert reason_code is "customer_frustration"
+  - **TestEscalateStateMutationContract** (1 test):
+    - `test_does_not_mutate_context`: deepcopy context before run(); assert
+      context.model_dump() unchanged after run()
+  - **TestEscalateStateEdgeCases** (3 tests):
+    - `test_classify_output_none_uses_unknown_intent`: context with
+      classify_output=None; assert run() completes without error; assert payload
+      passed to create_escalation_ticket has intent primary == "unknown"
+    - `test_detected_emotion_none_defaults_neutral`: session with
+      detected_emotion=None; assert customer_emotion sentiment == "neutral" in
+      payload
+    - `test_act_output_none_tools_called_empty`: skip_context (act_output is None);
+      assert tools_called == [] in assembled payload
+  - All _invoke_agent calls patched with patch.object(state, "_invoke_agent")
+  - create_escalation_ticket patched at
+    src.orchestrator.states.escalate.create_escalation_ticket
+
+**Validation**: ~12 tests pass, both trigger paths, agent fallback, ticket
+failure, reason_code logic, mutation contract, and classify_output=None edge
+case covered
+
+---
+
+## T044: Phase 2.7 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.7 tests pass together with all prior phases.
+
+**Dependencies**: T042-T043 complete.
+
+- [ ] T044 Run full orchestrator test suite
+  - Run `pytest tests/orchestrator/ -v`
+  - Verify all ~171 tests pass (159 from Phases 2.1-2.6 + ~12 from Phase 2.7)
+  - Verify no import errors
+  - Verify test output is clean (no warnings)
+
+**Validation**: ~171 tests pass (~159 previous + ~12 new)
+
+---
+
+## Phase 2.7 Completion Checklist
+
+Phase 2.7 (EscalateState) is complete when:
+
+- [ ] EscalateState implemented in `src/orchestrator/states/escalate.py`
+- [ ] Both trigger paths handled (SKIP_TO_ESCALATE and post-Act unresolved)
+- [ ] EscalateAgent invoked for summary and suggested_next_action
+- [ ] Agent failure fallback uses hardcoded strings, still calls
+  create_escalation_ticket
+- [ ] _select_reason_code covers all four reason_code values
+- [ ] classify_output=None handled (defaults to unknown intent)
+- [ ] detected_emotion=None handled (defaults to neutral sentiment)
+- [ ] act_output=None handled (tools_called and kb_citations default to [])
+- [ ] escalation_triggered event logged (FR-052)
+- [ ] Pure function: context not mutated
+- [ ] ~12 tests pass in tests/orchestrator/test_states/test_escalate.py
+- [ ] Full orchestrator suite shows ~171 passing tests (159 + ~12)
+- [ ] No import errors from src.orchestrator.states.escalate
+
+**Expected test count**: ~12 tests across 6 test classes
+
+---
+
+## Phase 2.7 Dependencies
+
+```
+Phase 2.6 (ActState)
+  |
+Phase 2.7 (EscalateState)
+  |
+  |-> T042 (EscalateState implementation)
+  |     |
+  |-> T043 (~12 unit tests)
+  |     |
+  +-> T044 (Full test suite validation, ~171 tests)
+```
+
+**Parallel opportunities**: None (tests depend on implementation)
+
+---
+
+**Phase 2.7 Total tasks**: 3 tasks (T042-T044)
+**Deliverables**:
+- `src/orchestrator/states/escalate.py` (EscalateState, agent invocation, payload assembly, ticket creation)
+- `tests/orchestrator/test_states/test_escalate.py` (~12 tests across 6 classes)
+- ~12 passing tests (both trigger paths, agent fallback, reason_code logic, mutation contract, edge cases)
