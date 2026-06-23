@@ -1167,7 +1167,7 @@ Phase 2.5 (ClassifyState)
 
 **Dependencies**: Phase 2.5 complete.
 
-- [ ] T039 Create `src/orchestrator/states/act.py` with ActState class
+- [x] T039 Create `src/orchestrator/states/act.py` with ActState class
   - Imports: `asyncio`, `datetime`, `time`, `AgentFactory` from `src.orchestrator.agents.factory`, `ActOutput`, `KBCitation`, `StateContext`, `ToolCallRecord`, `RoutingDecision` from `src.orchestrator.models`, `StructuredLogger`, `log_tool_call` from `src.orchestrator.observability.structured`, `get_billing_info` from `src.tools.billing`, `get_customer_account` from `src.tools.customer`, `check_network_outage` from `src.tools.outage`, `run_speed_diagnostic` from `src.tools.diagnostic`
   - Module-level constant: `_PARTIAL_ERROR_CODES = frozenset({"invalid_format", "not_found"})` -- error codes that set `resolution_status="partial"` without retry
   - Class: `ActState(BaseState[StateContext, ActOutput])`
@@ -1215,7 +1215,7 @@ Phase 2.5 (ClassifyState)
 
 **Dependencies**: T039 complete.
 
-- [ ] T040 Create `tests/orchestrator/test_states/test_act.py` with ~20 tests
+- [x] T040 Create `tests/orchestrator/test_states/test_act.py` with ~20 tests
   - Autouse fixture: sets `AZURE_FOUNDRY_PROJECT_ENDPOINT`, `AZURE_TENANT_ID`, `VECTOR_STORE_ID`; clears `get_config` cache
   - Fixtures: `mock_factory` (MagicMock spec=AgentFactory, act agent id=`"agent-act-001"`), `state` (ActState with mock_factory), `session` (SessionState, `account_id="ACC-001"`), `billing_context` (`routing_decision=BILLING_PATH`), `account_context` (`routing_decision=ACCOUNT_PATH`), `technical_context` (`routing_decision=TECHNICAL_PATH`), `info_context` (`routing_decision=INFO_PATH`)
   - Helper: `_billing_success()` returns `GetBillingInfoResult(success=True, ...)`
@@ -1259,7 +1259,7 @@ Phase 2.5 (ClassifyState)
 
 **Dependencies**: T039-T040 complete.
 
-- [ ] T041 Run full orchestrator test suite
+- [x] T041 Run full orchestrator test suite
   - Run `pytest tests/orchestrator/ -v`
   - Verify all ~155 tests pass (135 from Phases 2.1-2.5 + ~20 from Phase 2.6)
   - Verify no import errors
