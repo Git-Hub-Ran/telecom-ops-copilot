@@ -1134,3 +1134,191 @@ Phase 2.5 (ClassifyState)
 - `src/orchestrator/states/classify.py` (ClassifyState + 3 module-level helpers)
 - `tests/orchestrator/test_states/test_classify.py` (33 tests across 6 test classes)
 - 33 passing tests (all intent paths, all error cases, mutation contract, history passthrough)
+
+---
+
+# Phase 2.6: ActState (T039-T041)
+
+**Goal**: Implement ActState, the tool-calling state. Dispatches to one of four path methods based on routing_decision, calls existing Python tool functions directly (no agent-driven dispatch for tool paths), invokes the act agent only for INFO_PATH (KB file_search), handles two distinct error modes, and applies one retry with 250 ms backoff for transient failures.
+
+**Key decisions (confirmed in pre-implementation review)**:
+- Dispatch is Python-driven via a dict mapping RoutingDecision to a bound method. INFO_PATH is a separate branch (no dict entry) because it invokes the act agent rather than a Python tool.
+- TECHNICAL_PATH calls three tools in sequence:
+    1. `get_customer_account(account_id)` to retrieve `billing_zip`
+    2. `check_network_outage(zip_code=account.billing_zip)`
+    3. `run_speed_diagnostic(account_id)`
+  Steps 2 and 3 are skipped if step 1 fails, but the step 1 ToolCallRecord is always appended. If step 1 succeeds but step 2 fails, step 3 still runs. ToolCallRecord entries for every attempted call are appended to `tools_called` regardless of outcome (required for observability and the eval framework).
+- Two distinct error modes:
+    Mode A (tool returned error): `result.success == False`, check `error_code`
+    Mode B (tool raised exception): caught by `except` block
+  Both modes produce a ToolCallRecord. Resolution status differs by `error_code`.
+- Retry: one retry with `asyncio.sleep(0.25)` for `data_unavailable`, `data_invalid`, and exception. No retry for `invalid_format` or `not_found`.
+- Act agent (`_invoke_agent_for_kb`) is only called for INFO_PATH. It is mocked separately from tool functions in tests.
+- Bypass decisions (`SKIP_TO_ESCALATE`, `ASK_CLARIFYING_QUESTION`, `REFUSE_OFF_TOPIC`) raise `ValueError` because the StateMachine must never route them to ActState.
+- `account_id=None` in `session_state` prevents tool calls; returns `resolution_status="partial"` with `error_details` explaining the gap.
+
+**Dependencies**: Phase 2.5 complete (ClassifyState, AgentFactory, models, structured logging all available)
+
+---
+
+## T039: ActState Implementation
+
+**Purpose**: Tool-calling state with Python-driven dispatch, retry logic, and act agent invocation for INFO_PATH.
+
+**Dependencies**: Phase 2.5 complete.
+
+- [ ] T039 Create `src/orchestrator/states/act.py` with ActState class
+  - Imports: `asyncio`, `datetime`, `time`, `AgentFactory` from `src.orchestrator.agents.factory`, `ActOutput`, `KBCitation`, `StateContext`, `ToolCallRecord`, `RoutingDecision` from `src.orchestrator.models`, `StructuredLogger`, `log_tool_call` from `src.orchestrator.observability.structured`, `get_billing_info` from `src.tools.billing`, `get_customer_account` from `src.tools.customer`, `check_network_outage` from `src.tools.outage`, `run_speed_diagnostic` from `src.tools.diagnostic`
+  - Module-level constant: `_PARTIAL_ERROR_CODES = frozenset({"invalid_format", "not_found"})` -- error codes that set `resolution_status="partial"` without retry
+  - Class: `ActState(BaseState[StateContext, ActOutput])`
+  - `__init__(self, agent_factory: AgentFactory)`: stores factory, creates `StructuredLogger`
+  - `run(self, context: StateContext) -> ActOutput` (async):
+      Raises `ValueError` if `routing_decision` is `None`
+      Raises `ValueError` for bypass decisions (`SKIP_TO_ESCALATE`, `ASK_CLARIFYING_QUESTION`, `REFUSE_OFF_TOPIC`)
+      Extracts `account_id` from `context.session_state.account_id`
+      Dispatches to `_run_billing`, `_run_account`, `_run_technical`, or `_run_info` based on `routing_decision`
+  - `_run_billing(self, account_id, correlation_id) -> ActOutput`:
+      If `account_id` is `None`, returns partial `ActOutput` with `error_details`
+      Calls `get_billing_info` via `_call_with_retry`
+      Builds `ToolCallRecord`, logs via `log_tool_call`
+      Returns `ActOutput` with `resolution_status` and `tools_called`
+  - `_run_account(self, account_id, correlation_id) -> ActOutput`:
+      Same pattern as `_run_billing` using `get_customer_account`
+  - `_run_technical(self, account_id, correlation_id) -> ActOutput`:
+      Step 1: call `get_customer_account` via `_call_with_retry`; append `ToolCallRecord` regardless of outcome; if step 1 fails, return immediately with partial/unresolved status (steps 2 and 3 not attempted)
+      Step 2: call `check_network_outage(zip_code=account.billing_zip)` via `_call_with_retry`; append `ToolCallRecord` regardless of outcome; step 3 still runs even if step 2 fails
+      Step 3: call `run_speed_diagnostic(account_id)` via `_call_with_retry`; append `ToolCallRecord` regardless of outcome
+      Derive final `resolution_status` from worst outcome across all records: any `"unresolved"` wins over `"partial"`, which wins over `"resolved"`
+  - `_run_info(self, content, correlation_id) -> ActOutput`:
+      Calls `await asyncio.to_thread(self._invoke_agent_for_kb, content)`
+      Parses JSON response for `kb_citations` list
+      Returns `ActOutput(resolution_status="resolved", kb_citations=[...], tools_called=[])`
+      On exception: logs error, returns `ActOutput(resolution_status="unresolved", error_details=str(exc))`
+  - `_invoke_agent_for_kb(self, content: str) -> str` (sync):
+      Uses `self.factory.agents_client` and `self.factory.get_act_agent()`
+      Same SDK call sequence as `ClassifyState._invoke_agent`: `create_thread` -> `create_message` -> `create_and_process_run` -> `list_messages` -> extract assistant text
+  - `_call_with_retry(self, fn, tool_name, correlation_id, **kwargs) -> tuple[Any, ToolCallRecord]` (async):
+      First attempt: call `fn(**kwargs)` via `asyncio.to_thread`
+      If `result.success` is `False` and `error_code` in `_PARTIAL_ERROR_CODES`: no retry, return record with `success=False`
+      If `result.success` is `False` or exception raised: wait `asyncio.sleep(0.25)`, retry once; if retry succeeds, return record with `success=True`; if retry also fails, return record with `success=False` and `error_code` from result or `"exception"`
+      Logs `tool_call` event after each attempt via `log_tool_call`; records `duration_ms` per attempt
+  - Add module docstring referencing FR-035, FR-044, FR-048
+  - Add class and method docstrings with Args, Returns, Raises sections
+
+**Validation**: ActState instantiates with mocked factory, `run()` is async, all four path methods exist
+
+---
+
+## T040: ActState Tests
+
+**Purpose**: ~20 unit tests covering all four routing paths, both tool error modes, TECHNICAL_PATH partial-failure sequencing, bypass validation, retry logic, and mutation contract.
+
+**Dependencies**: T039 complete.
+
+- [ ] T040 Create `tests/orchestrator/test_states/test_act.py` with ~20 tests
+  - Autouse fixture: sets `AZURE_FOUNDRY_PROJECT_ENDPOINT`, `AZURE_TENANT_ID`, `VECTOR_STORE_ID`; clears `get_config` cache
+  - Fixtures: `mock_factory` (MagicMock spec=AgentFactory, act agent id=`"agent-act-001"`), `state` (ActState with mock_factory), `session` (SessionState, `account_id="ACC-001"`), `billing_context` (`routing_decision=BILLING_PATH`), `account_context` (`routing_decision=ACCOUNT_PATH`), `technical_context` (`routing_decision=TECHNICAL_PATH`), `info_context` (`routing_decision=INFO_PATH`)
+  - Helper: `_billing_success()` returns `GetBillingInfoResult(success=True, ...)`
+  - Helper: `_account_success()` returns `GetCustomerAccountResult(success=True, account=MagicMock(billing_zip="90210"), ...)`
+  - Helper: `_error_result(cls, error_code)` returns `cls(success=False, error_code=error_code, error_message="test error")`
+  - **TestActStateHappyPaths** (4 tests, one per routing decision):
+    - `test_billing_path_resolved`: patch `src.orchestrator.states.act.get_billing_info` -> success; assert `resolution_status == "resolved"`, `tools_called[0].tool_name == "get_billing_info"`, `tools_called[0].success is True`, `kb_citations == []`
+    - `test_account_path_resolved`: patch `get_customer_account` -> success; assert `resolution_status == "resolved"`, correct `tool_name`
+    - `test_technical_path_all_tools_resolved`: patch all three tools -> success; assert `resolution_status == "resolved"`, `len(tools_called) == 3`, tool names in order `["get_customer_account", "check_network_outage", "run_speed_diagnostic"]`
+    - `test_info_path_returns_kb_citations`: `patch.object(state, "_invoke_agent_for_kb")` -> valid JSON with citations; assert `resolution_status == "resolved"`, `len(kb_citations) > 0`, `tools_called == []`
+  - **TestActStateToolErrorModes** (5 tests, covering both Q2 error modes):
+    - `test_mode_a_invalid_format_returns_partial`: tool returns `error_code="invalid_format"`; assert `resolution_status == "partial"`, `tools_called[0].success is False`, `tools_called[0].error_code == "invalid_format"`
+    - `test_mode_a_not_found_returns_partial`: tool returns `error_code="not_found"`; assert `resolution_status == "partial"`
+    - `test_mode_a_data_unavailable_retries_then_unresolved`: both attempts return `error_code="data_unavailable"`; assert `resolution_status == "unresolved"`, mock called exactly twice
+    - `test_mode_b_exception_retries_then_unresolved`: both attempts raise `Exception`; assert `resolution_status == "unresolved"`, mock called exactly twice
+    - `test_mode_a_data_unavailable_retry_succeeds`: first attempt fails with `data_unavailable`, second succeeds; assert `resolution_status == "resolved"`, mock called exactly twice
+  - **TestActStateTechnicalPath** (3 tests):
+    - `test_technical_step1_fails_steps2_and_3_not_attempted`: `get_customer_account` returns `not_found`; assert `len(tools_called) == 1`, `tools_called[0].tool_name == "get_customer_account"`, `tools_called[0].success is False`; assert `check_network_outage` and `run_speed_diagnostic` not called
+    - `test_technical_step2_fails_step3_still_runs`: step 1 success, step 2 `data_unavailable` (unresolved after retry), step 3 success; assert `len(tools_called) == 3`, `tools_called[2].tool_name == "run_speed_diagnostic"`, `tools_called[2].success is True`
+    - `test_technical_all_records_appended_on_partial_success`: step 2 fails, step 3 succeeds; assert `tools_called` contains records for all three tool names; assert `resolution_status == "unresolved"` (worst outcome wins)
+  - **TestActStateBypassDecisions** (3 tests):
+    - `test_skip_to_escalate_raises_value_error`
+    - `test_ask_clarifying_question_raises_value_error`
+    - `test_refuse_off_topic_raises_value_error`
+    - All three: assert raises `ValueError` with informative message
+  - **TestActStateContextHandling** (3 tests):
+    - `test_does_not_mutate_context`: deepcopy before `run()`, assert `model_dump()` unchanged after
+    - `test_missing_account_id_returns_partial`: `session.account_id = None`, `routing_decision = BILLING_PATH`; assert `resolution_status == "partial"`, `"account_id"` in `result.error_details`
+    - `test_routing_decision_none_raises_value_error`: `context.routing_decision = None`; assert raises `ValueError`
+  - All tool tests patch at `src.orchestrator.states.act.<tool_name>`
+  - INFO_PATH tests use `patch.object(state, "_invoke_agent_for_kb")`
+  - Run pytest on test_act.py, verify ~20 tests pass
+
+**Validation**: ~20 tests pass, all routing paths, both error modes, retry behaviour, TECHNICAL_PATH sequencing, and mutation contract covered
+
+---
+
+## T041: Phase 2.6 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.6 tests pass together with all prior phases.
+
+**Dependencies**: T039-T040 complete.
+
+- [ ] T041 Run full orchestrator test suite
+  - Run `pytest tests/orchestrator/ -v`
+  - Verify all ~155 tests pass (135 from Phases 2.1-2.5 + ~20 from Phase 2.6)
+  - Verify no import errors
+  - Verify test output is clean (no warnings)
+
+**Validation**: ~155 tests pass (~135 previous + ~20 new)
+
+---
+
+## Phase 2.6 Completion Checklist
+
+Phase 2.6 (ActState) is complete when:
+
+- [ ] ActState implemented in `src/orchestrator/states/act.py`
+- [ ] Four path methods: `_run_billing`, `_run_account`, `_run_technical`, `_run_info`
+- [ ] `_call_with_retry` implements one retry with 250 ms backoff (FR-035)
+- [ ] `_invoke_agent_for_kb` handles INFO_PATH KB search
+- [ ] Both tool error modes handled (`result.success == False` vs exception)
+- [ ] `_PARTIAL_ERROR_CODES` frozenset covers `invalid_format` and `not_found`
+- [ ] TECHNICAL_PATH appends `ToolCallRecord` for every attempted call
+- [ ] Bypass decisions raise `ValueError`
+- [ ] `account_id=None` returns partial `ActOutput` with `error_details`
+- [ ] `log_tool_call` emitted per tool attempt (FR-048)
+- [ ] ~20 tests pass in `tests/orchestrator/test_states/test_act.py`
+- [ ] Full orchestrator suite shows ~155 passing tests (135 + ~20)
+- [ ] No import errors from `src.orchestrator.states.act`
+
+**Expected test count**: ~20 tests across 5 test classes
+
+---
+
+## Phase 2.6 Next Steps
+
+After Phase 2.6 is complete and committed:
+- Phase 2.7 will implement EscalateState (invokes escalate agent, calls `create_escalation_ticket`, populates `escalate_output` on context)
+
+---
+
+## Phase 2.6 Dependencies
+
+```
+Phase 2.5 (ClassifyState)
+  |
+Phase 2.6 (ActState)
+  |
+  |-> T039 (ActState implementation)
+  |     |
+  |-> T040 (~20 unit tests)
+  |     |
+  +-> T041 (Full test suite validation, ~155 tests)
+```
+
+**Parallel opportunities**: None (tests depend on implementation)
+
+---
+
+**Phase 2.6 Total tasks**: 3 tasks (T039-T041)
+**Estimated effort**: 3 days (per plan.md Phase 2.6)
+**Deliverables**:
+- `src/orchestrator/states/act.py` (ActState, 4 path methods, retry helper, KB agent method)
+- `tests/orchestrator/test_states/test_act.py` (~20 tests across 5 classes)
+- ~20 passing tests (all routing paths, both error modes, retry logic, TECHNICAL_PATH sequencing, mutation contract)
