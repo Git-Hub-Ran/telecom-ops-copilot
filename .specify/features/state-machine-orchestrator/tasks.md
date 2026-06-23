@@ -1574,3 +1574,262 @@ Phase 2.7 (EscalateState)
 - `src/orchestrator/states/escalate.py` (EscalateState, agent invocation, payload assembly, ticket creation)
 - `tests/orchestrator/test_states/test_escalate.py` (~12 tests across 6 classes)
 - ~12 passing tests (both trigger paths, agent fallback, reason_code logic, mutation contract, edge cases)
+
+# Phase 2.8: RespondState (T045-T047)
+
+**Goal**: Implement RespondState, the terminal state that generates the
+final customer-facing message. Invokes RespondAgent for all tool-path
+outcomes (resolved, unresolved+escalated, direct escalation). Assembles
+Python-only canned messages for REFUSE_OFF_TOPIC and
+ASK_CLARIFYING_QUESTION without an agent call. Applies FR-045 hardcoded
+fallback on agent failure. Returns RespondOutput without mutating context.
+
+**Key decisions (confirmed in pre-implementation review)**:
+- Four incoming state branches:
+    a. Act resolved (act_output.resolution_status == "resolved"): invoke
+       RespondAgent with act context and KB citations; citations list and
+       kb_docs_used populated from act_output.kb_citations.
+    b. Act unresolved + escalation happened (escalate_output populated,
+       act_output populated): invoke RespondAgent with escalation context;
+       escalation_offered=True in metadata.
+    c. Direct escalation, Act skipped (act_output is None, escalate_output
+       populated): invoke RespondAgent with escalation context;
+       escalation_offered=True; tools_called=0.
+    d. No act, no escalation (ASK_CLARIFYING_QUESTION or REFUSE_OFF_TOPIC):
+       Python-assembled canned response, no RespondAgent call;
+       escalation_offered=False.
+- RespondAgent prompt includes: original customer_message,
+  routing_decision value, act_output.resolution_status and error_details
+  (if act ran), escalation flag (True if escalate_output populated),
+  kb_citations list (if act ran).
+- RespondAgent returns JSON with message, citations (list of doc_id
+  strings), and metadata dict. EscalateState pattern: parse response,
+  extract fields, build RespondOutput.
+- FR-045 fallback on agent failure: message="I'm sorry, I encountered an
+  issue. Let me connect you with support.", citations=[], metadata with
+  escalation_offered=True.
+- RespondOutput.metadata keys used: kb_docs_used (int), tools_called
+  (int), error_code (str, only if act_output.error_details is not None),
+  escalation_offered (bool). escalation_confirmed is not a distinct field;
+  escalation_offered covers both offered and confirmed handoffs.
+- Canned messages for REFUSE_OFF_TOPIC and ASK_CLARIFYING_QUESTION are
+  module-level constants (not agent-generated) so they are stable,
+  testable, and never at risk of hallucination.
+- RespondState is the terminal state. There is no respond_output slot on
+  StateContext. The StateMachine returns RespondOutput directly to the
+  caller. Does not mutate context.
+
+**Dependencies**: Phase 2.7 complete. RespondOutput model already exists
+in src/orchestrator/models/respond.py.
+
+---
+
+## T045: RespondState Implementation
+
+**Purpose**: Terminal state that generates the customer-facing message via
+RespondAgent or Python-assembled canned text, and returns RespondOutput.
+
+**Dependencies**: Phase 2.7 complete.
+
+- [ ] T045 Create `src/orchestrator/states/respond.py` with RespondState class
+  - Imports: `asyncio`, `json`, `AgentFactory` from
+    `src.orchestrator.agents.factory`, `RespondOutput`, `RoutingDecision`,
+    `StateContext` from `src.orchestrator.models`, `StructuredLogger` from
+    `src.orchestrator.observability.structured`, `BaseState` from
+    `src.orchestrator.states.base`
+  - Module-level constants:
+    - `_REFUSE_MESSAGE`: canned off-topic refusal string (e.g. "I can only
+      assist with TelSano telecom service questions. Is there something
+      else I can help you with?")
+    - `_CLARIFY_MESSAGE`: canned clarification request string (e.g. "Could
+      you tell me a bit more about your issue so I can point you to the
+      right place?")
+    - `_FALLBACK_MESSAGE`: FR-045 hardcoded fallback string ("I'm sorry, I
+      encountered an issue. Let me connect you with support.")
+  - Class: `RespondState(BaseState[StateContext, RespondOutput])`
+  - `__init__(self, agent_factory: AgentFactory)`: stores factory, creates
+    StructuredLogger
+  - `run(self, context: StateContext) -> RespondOutput` (async):
+      Returns canned RespondOutput immediately for REFUSE_OFF_TOPIC and
+      ASK_CLARIFYING_QUESTION without invoking RespondAgent
+      For all other routing decisions: calls `_build_agent_prompt(context)`,
+      invokes RespondAgent via `await asyncio.to_thread(self._invoke_agent,
+      content)`, parses JSON response, builds and returns RespondOutput via
+      `_build_output(context, data)`
+      On any exception from agent: logs error, returns FR-045 fallback
+      RespondOutput with escalation_offered=True in metadata
+      Does not mutate context
+  - `_build_agent_prompt(self, context: StateContext) -> str`:
+      Formats customer_message, routing_decision, act_output fields
+      (resolution_status, error_details, kb_citations), and escalation flag
+      (True if escalate_output is not None) into a structured prompt string
+      Instructs agent to return JSON with exactly three fields: "message",
+      "citations" (list of doc_id strings), "metadata" (dict)
+  - `_invoke_agent(self, content: str) -> str` (sync):
+      Uses self.factory.agents_client and self.factory.get_respond_agent()
+      Same SDK call sequence as prior states: create_thread ->
+      create_message -> create_and_process_run -> list_messages ->
+      extract assistant text
+      Raises RuntimeError if no assistant text found
+  - `_build_output(self, context: StateContext, data: dict) -> RespondOutput`:
+      Extracts message (str), citations (list[str]), and metadata (dict)
+      from parsed agent response dict
+      Merges computed metadata fields on top of agent-provided metadata:
+      kb_docs_used = len(act_output.kb_citations) if act_output else 0
+      tools_called = len(act_output.tools_called) if act_output else 0
+      error_code = act_output.error_details if act_output and
+      act_output.error_details is not None else omitted from metadata
+      escalation_offered = True if escalate_output is not None else
+      metadata.get("escalation_offered", False)
+      Returns RespondOutput(message=..., citations=..., metadata=...)
+  - Add module docstring referencing FR-045
+  - Add class and method docstrings with Args, Returns, Raises sections
+
+**Validation**: RespondState instantiates with mocked factory, run() is
+async, canned messages return without agent call, agent path parses JSON
+
+---
+
+## T046: RespondState Tests
+
+**Purpose**: Unit tests covering all four incoming state branches, agent
+failure fallback, canned messages for bypass decisions, metadata field
+population, and mutation contract.
+
+**Dependencies**: T045 complete.
+
+- [ ] T046 Create `tests/orchestrator/test_states/test_respond.py` with ~12 tests
+  - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
+    VECTOR_STORE_ID; clears get_config cache
+  - Fixtures:
+    - `mock_factory`: MagicMock spec=AgentFactory, respond agent
+      id="agent-respond-001"
+    - `state`: RespondState with mock_factory
+    - `session`: SessionState with standard fields
+    - `resolved_context`: StateContext with routing_decision=BILLING_PATH,
+      act_output=ActOutput(resolution_status="resolved", tools_called=[...],
+      kb_citations=[KBCitation(doc_id="kb/01.md", section="S1",
+      relevance="r")], error_details=None), escalate_output=None
+    - `unresolved_escalated_context`: StateContext with act_output
+      (resolution_status="unresolved"), escalate_output=MagicMock(
+      success=True)
+    - `direct_escalation_context`: StateContext with act_output=None,
+      escalate_output=MagicMock(success=True),
+      routing_decision=SKIP_TO_ESCALATE
+    - `refuse_context`: StateContext with
+      routing_decision=REFUSE_OFF_TOPIC
+    - `clarify_context`: StateContext with
+      routing_decision=ASK_CLARIFYING_QUESTION
+  - Agent response helper: `_agent_json(message, citations, metadata)`
+    returns JSON string
+  - **TestRespondStateIncomingBranches** (4 tests):
+    - `test_resolved_path_returns_message`: patch _invoke_agent -> valid
+      JSON; assert result.message is non-empty string; assert
+      result.metadata.get("escalation_offered", False) == False
+    - `test_unresolved_escalated_path_sets_escalation_offered`: patch
+      _invoke_agent -> valid JSON; assert
+      result.metadata["escalation_offered"] is True
+    - `test_direct_escalation_path_no_act_output`: patch _invoke_agent ->
+      valid JSON; assert result is RespondOutput; assert
+      result.metadata["escalation_offered"] is True; assert
+      result.metadata["tools_called"] == 0
+    - `test_refuse_off_topic_no_agent_call`: assert result.message
+      contains canned refusal text; assert _invoke_agent not called
+  - **TestRespondStateBypassDecisions** (1 test):
+    - `test_ask_clarifying_question_no_agent_call`: assert result.message
+      contains canned clarification text; assert _invoke_agent not called
+  - **TestRespondStateAgentFallback** (2 tests):
+    - `test_agent_failure_returns_fr045_message`: patch _invoke_agent ->
+      raises RuntimeError; assert result.message == _FALLBACK_MESSAGE
+      (import from module); assert
+      result.metadata["escalation_offered"] is True
+    - `test_agent_failure_still_returns_respond_output`: patch
+      _invoke_agent -> raises RuntimeError; assert isinstance(result,
+      RespondOutput)
+  - **TestRespondStateMetadata** (3 tests):
+    - `test_kb_docs_used_matches_citations_count`: resolved_context with
+      1 KB citation; assert result.metadata["kb_docs_used"] == 1
+    - `test_tools_called_count_in_metadata`: resolved_context with 1 tool
+      record; assert result.metadata["tools_called"] == 1
+    - `test_no_escalation_offered_when_escalate_output_none`: resolved
+      path with escalate_output=None; assert
+      result.metadata.get("escalation_offered", False) == False
+  - **TestRespondStateMutationContract** (1 test):
+    - `test_does_not_mutate_context`: deepcopy context before run();
+      assert context.model_dump() unchanged after run()
+  - All _invoke_agent calls patched with patch.object(state, "_invoke_agent")
+
+**Validation**: ~12 tests pass, all four incoming branches, FR-045
+fallback, bypass decisions, metadata fields, and mutation contract covered
+
+---
+
+## T047: Phase 2.8 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.8 tests pass together with all prior phases.
+
+**Dependencies**: T045-T046 complete.
+
+- [ ] T047 Run full orchestrator test suite
+  - Run `pytest tests/orchestrator/ -v`
+  - Verify all ~183 tests pass (171 from Phases 2.1-2.7 + ~12 from
+    Phase 2.8)
+  - Verify no import errors
+  - Verify test output is clean (no warnings)
+
+**Validation**: ~183 tests pass (~171 previous + ~12 new)
+
+---
+
+## Phase 2.8 Completion Checklist
+
+Phase 2.8 (RespondState) is complete when:
+
+- [ ] RespondState implemented in `src/orchestrator/states/respond.py`
+- [ ] REFUSE_OFF_TOPIC and ASK_CLARIFYING_QUESTION return canned messages
+  without agent call
+- [ ] RespondAgent invoked for resolved, unresolved+escalated, and direct
+  escalation paths
+- [ ] Agent prompt includes customer_message, routing_decision,
+  act_output fields, and escalation flag
+- [ ] FR-045 fallback returns hardcoded message with
+  escalation_offered=True on agent failure
+- [ ] _build_output populates kb_docs_used, tools_called, error_code (from
+  act_output.error_details), and escalation_offered in metadata
+- [ ] escalation_offered=True set whenever escalate_output is not None
+- [ ] Pure function: context not mutated; no respond_output slot on
+  StateContext
+- [ ] ~12 tests pass in tests/orchestrator/test_states/test_respond.py
+- [ ] Full orchestrator suite shows ~183 passing tests (171 + ~12)
+- [ ] No import errors from src.orchestrator.states.respond
+
+**Expected test count**: ~12 tests across 5 test classes
+
+---
+
+## Phase 2.8 Dependencies
+
+```
+Phase 2.7 (EscalateState)
+  |
+Phase 2.8 (RespondState)
+  |
+  |-> T045 (RespondState implementation)
+  |     |
+  |-> T046 (~12 unit tests)
+  |     |
+  +-> T047 (Full test suite validation, ~183 tests)
+```
+
+**Parallel opportunities**: None (tests depend on implementation)
+
+---
+
+**Phase 2.8 Total tasks**: 3 tasks (T045-T047)
+**Deliverables**:
+- `src/orchestrator/states/respond.py` (RespondState, agent invocation,
+  canned messages, output assembly)
+- `tests/orchestrator/test_states/test_respond.py` (~12 tests across 5
+  classes)
+- ~12 passing tests (all four branches, agent fallback, bypass decisions,
+  metadata fields, mutation contract)
