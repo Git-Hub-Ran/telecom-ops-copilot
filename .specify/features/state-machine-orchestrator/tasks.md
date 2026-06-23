@@ -1631,7 +1631,7 @@ RespondAgent or Python-assembled canned text, and returns RespondOutput.
 
 **Dependencies**: Phase 2.7 complete.
 
-- [ ] T045 Create `src/orchestrator/states/respond.py` with RespondState class
+- [x] T045 Create `src/orchestrator/states/respond.py` with RespondState class
   - Imports: `asyncio`, `json`, `AgentFactory` from
     `src.orchestrator.agents.factory`, `RespondOutput`, `RoutingDecision`,
     `StateContext` from `src.orchestrator.models`, `StructuredLogger` from
@@ -1698,7 +1698,7 @@ population, and mutation contract.
 
 **Dependencies**: T045 complete.
 
-- [ ] T046 Create `tests/orchestrator/test_states/test_respond.py` with ~12 tests
+- [x] T046 Create `tests/orchestrator/test_states/test_respond.py` with ~12 tests
   - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
     VECTOR_STORE_ID; clears get_config cache
   - Fixtures:
@@ -1770,7 +1770,7 @@ fallback, bypass decisions, metadata fields, and mutation contract covered
 
 **Dependencies**: T045-T046 complete.
 
-- [ ] T047 Run full orchestrator test suite
+- [x] T047 Run full orchestrator test suite
   - Run `pytest tests/orchestrator/ -v`
   - Verify all ~183 tests pass (171 from Phases 2.1-2.7 + ~12 from
     Phase 2.8)
