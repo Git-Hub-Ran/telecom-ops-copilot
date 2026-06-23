@@ -1370,7 +1370,7 @@ create_escalation_ticket.
 
 **Dependencies**: Phase 2.6 complete.
 
-- [ ] T042 Create `src/orchestrator/states/escalate.py` with EscalateState class
+- [x] T042 Create `src/orchestrator/states/escalate.py` with EscalateState class
   - Imports: `asyncio`, `AgentFactory` from `src.orchestrator.agents.factory`,
     `ClassifyOutput`, `ActOutput`, `StateContext`, `RoutingDecision` from
     `src.orchestrator.models`, `StructuredLogger` from
@@ -1442,7 +1442,7 @@ creation failure, mutation contract, and missing classify_output edge case.
 
 **Dependencies**: T042 complete.
 
-- [ ] T043 Create `tests/orchestrator/test_states/test_escalate.py` with ~12 tests
+- [x] T043 Create `tests/orchestrator/test_states/test_escalate.py` with ~12 tests
   - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
     VECTOR_STORE_ID; clears get_config cache
   - Fixtures:
@@ -1518,7 +1518,7 @@ case covered
 
 **Dependencies**: T042-T043 complete.
 
-- [ ] T044 Run full orchestrator test suite
+- [x] T044 Run full orchestrator test suite
   - Run `pytest tests/orchestrator/ -v`
   - Verify all ~171 tests pass (159 from Phases 2.1-2.6 + ~12 from Phase 2.7)
   - Verify no import errors
