@@ -122,3 +122,37 @@ class TestSessionState:
         assert state.conversation_history[0].role == "customer"
         assert state.conversation_history[1].role == "agent"
         assert state.conversation_history[0].content == "What is my balance?"
+
+    def test_channel_defaults_to_chat(self) -> None:
+        """channel field defaults to 'chat' when not provided."""
+        state = SessionState(
+            session_id="SESS-20260617-001",
+            correlation_id="corr-abc123",
+            started_at="2026-06-17T14:00:00Z",
+            last_updated="2026-06-17T14:30:00Z",
+        )
+        assert state.channel == "chat"
+
+    @pytest.mark.parametrize("channel", ["chat", "voice", "email"])
+    def test_channel_accepts_all_valid_values(self, channel: str) -> None:
+        """channel accepts all three valid Literal values."""
+        state = SessionState(
+            session_id="SESS-20260617-001",
+            correlation_id="corr-abc123",
+            started_at="2026-06-17T14:00:00Z",
+            last_updated="2026-06-17T14:30:00Z",
+            channel=channel,
+        )
+        assert state.channel == channel
+
+    def test_channel_rejects_invalid_value(self) -> None:
+        """channel raises ValidationError for values outside the Literal."""
+        with pytest.raises(ValidationError) as exc_info:
+            SessionState(
+                session_id="SESS-20260617-001",
+                correlation_id="corr-abc123",
+                started_at="2026-06-17T14:00:00Z",
+                last_updated="2026-06-17T14:30:00Z",
+                channel="sms",
+            )
+        assert "channel" in str(exc_info.value).lower()

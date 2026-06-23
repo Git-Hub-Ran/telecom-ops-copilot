@@ -66,6 +66,10 @@ class SessionState(BaseModel):
         default_factory=list,
         description="Last 10 conversation turns (rolling window, each turn is one message), oldest first"
     )
+    channel: Literal["chat", "voice", "email"] = Field(
+        default="chat",
+        description="Communication channel for this session"
+    )
     started_at: str = Field(
         description="Session start timestamp in ISO 8601 format (e.g., 2026-06-17T14:30:00Z)"
     )
