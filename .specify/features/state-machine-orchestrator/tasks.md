@@ -969,3 +969,168 @@ Phase 2.4 (AgentFactory and System Prompts)
 - `tests/orchestrator/test_agents/test_factory.py` (10 factory unit tests: 8 parametrized + 2 individual)
 - `tests/orchestrator/test_agents/test_prompts.py` (5 prompt content tests)
 - 15 passing tests (100% coverage of factory logic and prompt requirements)
+
+---
+
+# Phase 2.5: ClassifyState (T036-T038)
+
+**Goal**: Implement ClassifyState, the first Foundry-backed state. Invokes the ClassifierAgent via the Azure AI Agents SDK, parses the JSON response into ClassifyOutput, and returns a safe fallback on any failure.
+
+**Commit**: 882a6d9 - "Implement Phase 2.5: ClassifyState with error fallback and 33 tests"
+
+**Key decisions**:
+- `_invoke_agent()` is a sync method (SDK is sync); wrapped in `asyncio.to_thread` inside `run()` to avoid blocking the event loop
+- All exceptions (timeout, malformed JSON, Pydantic ValidationError) are caught, logged as `classification_error`, and return fallback `ClassifyOutput(intent="unknown", confidence=0.0)`
+- Three module-level helpers: `_build_prompt_content`, `_extract_assistant_text`, `_fallback_output`
+- `_extract_assistant_text` handles both string roles ("assistant") and SDK enum roles (.value) for SDK version compatibility
+- Tests mock at `_invoke_agent` level via `patch.object`, not at individual SDK method level
+
+**Dependencies**: Phase 2.4 complete (AgentFactory, prompts, Config, structured logging available)
+
+---
+
+## T036: ClassifyState Implementation
+
+**Purpose**: First Foundry-backed state - invokes ClassifierAgent and parses response into ClassifyOutput
+
+**Dependencies**: Phase 2.4 complete (AgentFactory available), Phase 2.2 complete (ClassifyOutput, StateContext, ConversationTurn available)
+
+- [x] T036 Create `src/orchestrator/states/classify.py` with ClassifyState class
+  - Import: `asyncio`, `AgentFactory`, `ClassifyOutput`, `ConversationTurn`, `StateContext`, `StructuredLogger`, `log_classification_result`, `BaseState`
+  - Module-level helper: `_fallback_output() -> ClassifyOutput` returning `ClassifyOutput(intent="unknown", confidence=0.0, detected_emotion=None, off_topic=False)` as a fresh instance each call
+  - Module-level helper: `_build_prompt_content(customer_message, history)` formatting conversation history turns (labelled by role) followed by current message; omits history block entirely when history is empty
+  - Module-level helper: `_extract_assistant_text(messages)` iterating messages, matching role "assistant" or "agent" (handles str and enum), returning `item.text.value`; raises `RuntimeError` if no assistant message found
+  - Class: `ClassifyState(BaseState[StateContext, ClassifyOutput])`
+    - `__init__(self, agent_factory: AgentFactory)`: stores factory, creates `StructuredLogger`
+    - `run(self, context: StateContext) -> ClassifyOutput` (async):
+      - Raises `ValueError` if `customer_message` is empty
+      - Calls `self.factory.get_classifier_agent()` to get agent
+      - Calls `await asyncio.to_thread(self._invoke_agent, agent.id, content)`
+      - Validates response with `ClassifyOutput.model_validate_json(raw_json)`
+      - On any exception: logs `classification_error` event, returns `_fallback_output()`
+      - On success: logs `classification_result` event via `log_classification_result()`, returns result
+    - `_invoke_agent(self, agent_id: str, content: str) -> str` (sync):
+      - `client.create_thread()` → `client.create_message(...)` → `client.create_and_process_run(...)` → `client.list_messages(...)` → `_extract_assistant_text(...)`
+  - Add module docstring referencing FR-008, FR-009, FR-042 to FR-046
+  - Add full class and method docstrings with Args, Returns, Raises sections
+
+**Validation**: ClassifyState instantiates with mocked factory, `run()` is async, `_invoke_agent()` is sync
+
+---
+
+## T037: ClassifyState Tests
+
+**Purpose**: 33 unit tests covering all intent paths, error fallbacks, helper functions, and mutation contract
+
+**Dependencies**: T036 complete (ClassifyState implemented)
+
+- [x] T037 Create `tests/orchestrator/test_states/test_classify.py` with 33 tests
+  - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID, VECTOR_STORE_ID; clears get_config cache
+  - Fixtures: `mock_factory` (MagicMock spec=AgentFactory, classifier agent id="agent-classifier-001"), `state` (ClassifyState with mock_factory), `session` (SessionState, empty history), `context` (StateContext, message="What is my current bill?")
+  - Helper: `_json_response(intent, confidence, emotion, off_topic)` builds valid JSON string
+  - **TestBuildPromptContent** (3 tests):
+    - Empty history: content contains only current message, no "Conversation history" header
+    - With history: history turns appear before current message, history header present
+    - All 5 history turns included in content
+  - **TestExtractAssistantText** (5 tests):
+    - Extracts text from role="assistant" message
+    - Extracts text from role="agent" message (newer SDK variant)
+    - Skips user messages, finds assistant response
+    - Raises RuntimeError with no assistant message
+    - Raises RuntimeError on empty message list
+  - **TestFallbackOutput** (5 tests):
+    - intent="unknown", confidence=0.0, off_topic=False, detected_emotion=None
+    - Returns new instance each call (no shared mutable state)
+  - **TestClassifyStateHappyPaths** (11 tests):
+    - Parametrized across all 6 intent values (billing, technical, account, info, escalate, unknown)
+    - Correct confidence returned
+    - off_topic=True returned correctly
+    - detected_emotion="frustrated" returned correctly
+    - detected_emotion=null maps to None
+  - **TestClassifyStateFallbacks** (6 tests):
+    - TimeoutError from _invoke_agent returns fallback
+    - Malformed JSON returns fallback
+    - Invalid intent enum ("sports") triggers Pydantic error, returns fallback
+    - confidence=1.5 triggers Pydantic error, returns fallback
+    - HttpResponseError returns fallback
+    - Empty customer_message raises ValueError (not a fallback)
+  - **TestClassifyStateContextHandling** (4 tests):
+    - Does not mutate input context (deepcopy mutation contract)
+    - History turns appear in content passed to _invoke_agent (captured via side_effect)
+    - customer_message always appears in content
+    - get_classifier_agent() called once per run()
+  - All tests use `patch.object(state, "_invoke_agent", ...)` to mock agent response
+  - Run pytest on test_classify.py, verify 33 tests pass
+
+**Validation**: 33 tests pass, all intent paths and error cases covered
+
+---
+
+## T038: Phase 2.5 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.5 tests pass together with all prior phases
+
+**Dependencies**: T036-T037 complete
+
+- [x] T038 Run full orchestrator test suite
+  - Run `pytest tests/orchestrator/ -v`
+  - Verify all 135 tests pass (102 from Phases 2.1-2.4 + 33 from Phase 2.5)
+  - Breakdown: 33 new tests (13 helper unit tests + 11 happy-path + 6 fallback + 4 context-handling)
+  - Verify no import errors
+  - Verify test output is clean (no warnings)
+
+**Validation**: 135 tests pass (102 previous + 33 new)
+
+---
+
+## Phase 2.5 Completion Checklist
+
+Phase 2.5 (ClassifyState) is complete when:
+
+- [x] ClassifyState implemented in `src/orchestrator/states/classify.py`
+- [x] Three module-level helpers implemented and individually tested (`_build_prompt_content`, `_extract_assistant_text`, `_fallback_output`)
+- [x] All 6 intent paths covered by parametrized tests
+- [x] All error cases (timeout, malformed JSON, bad enum, out-of-range confidence, HttpResponseError) return fallback
+- [x] Empty customer_message raises ValueError
+- [x] Mutation contract verified (deepcopy pattern)
+- [x] History passthrough verified (content captured via side_effect)
+- [x] 33 tests pass in `tests/orchestrator/test_states/test_classify.py`
+- [x] Full orchestrator suite shows 135 passing tests (102 + 33)
+- [x] No import errors when importing from src.orchestrator.states.classify
+
+**Expected test count**: 33 tests (13 helper + 11 happy-path + 6 fallback + 4 context-handling)
+
+---
+
+## Phase 2.5 Next Steps
+
+After Phase 2.5 is complete and committed:
+- Phase 2.6 will implement ActState (tool-calling state, uses AgentFactory.get_act_agent())
+- ActState reads routing_decision and customer_message from context, calls 5 existing tools, populates act_output
+
+---
+
+## Phase 2.5 Dependencies
+
+```
+Phase 2.4 (AgentFactory and System Prompts)
+  ↓
+Phase 2.5 (ClassifyState)
+  │
+  ├─> T036 (ClassifyState implementation)
+  │     ↓
+  ├─> T037 (33 unit tests)
+  │     ↓
+  └─> T038 (Full test suite validation - 135 tests)
+```
+
+**Parallel opportunities**: None (tests depend on implementation)
+
+---
+
+**Phase 2.5 Total tasks**: 3 tasks (T036-T038)
+**Estimated effort**: 2 days (per plan.md Phase 2.5)
+**Deliverables**:
+- `src/orchestrator/states/classify.py` (ClassifyState + 3 module-level helpers)
+- `tests/orchestrator/test_states/test_classify.py` (33 tests across 6 test classes)
+- 33 passing tests (all intent paths, all error cases, mutation contract, history passthrough)
