@@ -1833,3 +1833,287 @@ Phase 2.8 (RespondState)
   classes)
 - ~12 passing tests (all four branches, agent fallback, bypass decisions,
   metadata fields, mutation contract)
+
+# Phase 2.9: StateMachine (T048-T050)
+
+**Goal**: Wire all 5 states into the main orchestration loop. Implement
+`StateMachine` as the single public entry point for the orchestrator.
+
+**Key decisions (confirmed in pre-implementation review)**:
+- Constructor receives an `AgentFactory`, instantiates all 5 states
+  internally. States are not passed in from outside.
+- Single entry point: `async def process_turn(self, message: str,
+  session: SessionState) -> RespondOutput`
+- Context accumulation uses `model_copy(update=...)` so each state
+  receives an immutable snapshot; StateMachine builds the next version
+  after each state returns.
+- State sequence:
+    BILLING_PATH | TECHNICAL_PATH | ACCOUNT_PATH | INFO_PATH:
+      Classify -> Route -> Act -> [Escalate if unresolved] -> Respond
+    SKIP_TO_ESCALATE (intent="escalate" or "unknown"):
+      Classify -> Route -> [skip Act] -> Escalate -> Respond
+    REFUSE_OFF_TOPIC | ASK_CLARIFYING_QUESTION:
+      Classify -> Route -> [skip Act, skip Escalate] -> Respond
+- Module-level constant `_ACT_DECISIONS: frozenset[RoutingDecision]`
+  covers the four content paths (BILLING_PATH, TECHNICAL_PATH,
+  ACCOUNT_PATH, INFO_PATH).
+- EscalateState runs when: routing_decision == SKIP_TO_ESCALATE, OR
+  act_output.resolution_status == "unresolved".
+- Early session mutation (after ClassifyState returns):
+    session.detected_emotion = classify_output.detected_emotion
+  No other session fields are updated here.
+- Exception in ClassifyState: catch at StateMachine level, log error,
+  return fallback RespondOutput(message=_FALLBACK_MESSAGE,
+  citations=[], metadata={"escalation_offered": True}).
+- Exception in ActState: catch at StateMachine level, log error, treat
+  as unresolved (proceed to EscalateState with act_output=None).
+- Post-respond session mutation (after RespondState returns):
+    Append ConversationTurn(role="customer", content=message, ...)
+    Append ConversationTurn(role="agent", content=respond_output.message, ...)
+    session.conversation_history = session.conversation_history[-10:]
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    session.last_updated = now
+    session.correlation_id = str(uuid4())
+- StateContext is never returned to the caller; process_turn returns
+  only RespondOutput. Streamlit layer owns SessionState <-> dict
+  serialization (FR-056).
+- FR-047 state transition logged after each state: from_state, to_state,
+  decision_reason, duration_ms, session_id.
+
+**Dependencies**: Phase 2.8 complete (all 5 states implemented and tested).
+
+---
+
+## T048: StateMachine Implementation
+
+**Purpose**: Orchestration loop that sequences the 5 states, manages
+context accumulation, handles exceptions, and updates session state.
+
+**Dependencies**: Phase 2.8 complete.
+
+- [ ] T048 Create `src/orchestrator/state_machine.py` with StateMachine class
+  - Imports: `asyncio`, `time`, `uuid`, `from datetime import datetime, timezone`,
+    `AgentFactory` from `src.orchestrator.agents.factory`,
+    `RespondOutput`, `RoutingDecision`, `SessionState`, `StateContext`
+    from `src.orchestrator.models`,
+    `ConversationTurn` from `src.orchestrator.models.session`,
+    `StructuredLogger` from `src.orchestrator.observability.structured`,
+    `ClassifyState` from `src.orchestrator.states.classify`,
+    `RouteState` from `src.orchestrator.states.route`,
+    `ActState` from `src.orchestrator.states.act`,
+    `EscalateState` from `src.orchestrator.states.escalate`,
+    `RespondState` from `src.orchestrator.states.respond`,
+    `_FALLBACK_MESSAGE` from `src.orchestrator.states.respond`
+  - Module-level constant:
+    `_ACT_DECISIONS: frozenset[RoutingDecision] = frozenset({
+        RoutingDecision.BILLING_PATH,
+        RoutingDecision.TECHNICAL_PATH,
+        RoutingDecision.ACCOUNT_PATH,
+        RoutingDecision.INFO_PATH,
+    })`
+  - Class: `StateMachine`
+  - `__init__(self, agent_factory: AgentFactory) -> None`:
+      Instantiates all 5 states:
+        `self._classify = ClassifyState(agent_factory)`
+        `self._route = RouteState()`
+        `self._act = ActState(agent_factory)`
+        `self._escalate = EscalateState(agent_factory)`
+        `self._respond = RespondState(agent_factory)`
+      Creates `StructuredLogger`
+  - `async def process_turn(self, message: str,
+    session: SessionState) -> RespondOutput`:
+      Builds initial context:
+        `context = StateContext(session_state=session,
+        customer_message=message)`
+      Runs ClassifyState inside try/except:
+        On success: `context = context.model_copy(update={"classify_output":
+        classify_output})`; `session.detected_emotion =
+        classify_output.detected_emotion`
+        On any exception: logs error with correlation_id; returns fallback
+        RespondOutput immediately (skips remaining states)
+      Runs RouteState:
+        `context = context.model_copy(update={"routing_decision":
+        routing_decision})`
+      If routing_decision in _ACT_DECISIONS:
+        Runs ActState inside try/except:
+          On success: `context = context.model_copy(update={"act_output":
+          act_output})`
+          On any exception: logs error; proceeds to EscalateState with
+          act_output slot remaining None on context
+      If routing_decision == SKIP_TO_ESCALATE or (context.act_output is
+      not None and context.act_output.resolution_status == "unresolved"):
+        Runs EscalateState:
+          `context = context.model_copy(update={"escalate_output":
+          escalate_output})`
+      Runs RespondState: returns RespondOutput directly (no slot on context)
+      Post-respond session mutation:
+        `now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")`
+        Appends ConversationTurn(role="customer", content=message,
+        timestamp=now)
+        Appends ConversationTurn(role="agent",
+        content=respond_output.message, timestamp=now)
+        `session.conversation_history =
+        session.conversation_history[-10:]`
+        `session.last_updated = now`
+        `session.correlation_id = str(uuid4())`
+      Returns RespondOutput
+      Logs FR-047 state transition after each state call:
+        event_type="state_transition", from_state, to_state,
+        decision_reason, duration_ms, session_id
+  - Add module docstring referencing FR-047, FR-051, FR-053, FR-055
+  - Add class and method docstrings with Args, Returns, Raises sections
+
+**Validation**: StateMachine instantiates with mocked factory, process_turn
+is async, returns RespondOutput
+
+---
+
+## T049: StateMachine Tests
+
+**Purpose**: ~13 unit tests covering all routing branches, exception
+handling, rolling window, correlation_id refresh, and session mutation
+contract.
+
+**Dependencies**: T048 complete.
+
+- [ ] T049 Create `tests/orchestrator/test_state_machine.py` with ~13 tests
+  - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
+    VECTOR_STORE_ID; clears get_config cache
+  - Fixtures:
+    - `mock_factory`: MagicMock spec=AgentFactory
+    - `machine`: StateMachine with mock_factory
+    - `session`: SessionState with session_id, correlation_id="corr-001",
+      account_id="ACC-001", conversation_history=[], started_at, last_updated,
+      detected_emotion=None
+  - State output helpers:
+    - `_classify_out(intent="billing", confidence=0.92)` returns ClassifyOutput
+    - `_act_resolved()` returns ActOutput(resolution_status="resolved", ...)
+    - `_act_unresolved()` returns ActOutput(resolution_status="unresolved",
+      error_details="data_unavailable", ...)
+    - `_escalate_ok()` returns CreateEscalationTicketResult(success=True)
+    - `_respond_out(msg="Done.")` returns RespondOutput(message=msg, ...)
+  - All state run() methods patched with patch.object on individual state
+    instances (machine._classify, machine._route, machine._act, etc.)
+  - **TestStateMachineHappyPaths** (4 tests):
+    - `test_billing_resolved_end_to_end`: patch Classify -> billing intent;
+      Route -> BILLING_PATH; Act -> resolved; Respond -> respond_out;
+      assert result.message == "Done."; assert machine._escalate.run not
+      called; assert machine._act.run called once
+    - `test_skip_to_escalate_act_not_called`: patch Classify -> escalate
+      intent; Route -> SKIP_TO_ESCALATE; Escalate -> escalate_ok; Respond
+      -> respond_out; assert machine._act.run not called; assert
+      machine._escalate.run called once
+    - `test_post_act_escalation_path`: patch Classify -> billing intent;
+      Route -> BILLING_PATH; Act -> unresolved; Escalate -> escalate_ok;
+      Respond -> respond_out; assert machine._act.run called; assert
+      machine._escalate.run called
+    - `test_refuse_off_topic_act_and_escalate_skipped`: patch Classify ->
+      off_topic=True; Route -> REFUSE_OFF_TOPIC; Respond -> respond_out;
+      assert machine._act.run not called; assert machine._escalate.run
+      not called; assert isinstance(result, RespondOutput)
+  - **TestStateMachineExceptionHandling** (2 tests):
+    - `test_classify_exception_returns_fallback`: patch machine._classify.run
+      -> raises RuntimeError; assert isinstance(result, RespondOutput); assert
+      result.metadata.get("escalation_offered") is True; assert
+      machine._route.run not called
+    - `test_act_exception_proceeds_to_escalate`: patch Act -> raises
+      RuntimeError; Route -> BILLING_PATH; Escalate -> escalate_ok; Respond
+      -> respond_out; assert machine._escalate.run called; assert
+      isinstance(result, RespondOutput)
+  - **TestStateMachineSessionMutation** (5 tests):
+    - `test_rolling_window_enforced_at_10_turns`: pre-populate
+      session.conversation_history with 9 ConversationTurn items; run one
+      turn (adds 2); assert len(session.conversation_history) == 10
+    - `test_rolling_window_does_not_exceed_10`: pre-populate with 10 turns;
+      run one turn; assert len(session.conversation_history) == 10
+    - `test_correlation_id_refreshed_after_turn`: capture
+      session.correlation_id before run; run one turn; assert
+      session.correlation_id != "corr-001"
+    - `test_both_turns_appended_to_history`: assert
+      session.conversation_history[-2].role == "customer"; assert
+      session.conversation_history[-1].role == "agent"
+    - `test_detected_emotion_written_to_session_after_classify`: patch
+      Classify -> ClassifyOutput(intent="billing", confidence=0.9,
+      detected_emotion="frustrated"); run turn; assert
+      session.detected_emotion == "frustrated"
+  - **TestStateMachineReturnType** (2 tests):
+    - `test_process_turn_returns_respond_output`: assert isinstance(result,
+      RespondOutput)
+    - `test_process_turn_does_not_leak_context`: assert result does not have
+      a "classify_output" attribute or "routing_decision" attribute (confirms
+      StateContext not returned)
+  - Run pytest on test_state_machine.py, verify ~13 tests pass
+
+**Validation**: ~13 tests pass, all routing branches, exception handling,
+session mutation, rolling window, and correlation_id refresh covered
+
+---
+
+## T050: Phase 2.9 Full Test Suite Validation
+
+**Purpose**: Verify all Phase 2.9 tests pass together with all prior phases.
+
+**Dependencies**: T048-T049 complete.
+
+- [ ] T050 Run full test suite
+  - Run `pytest tests/ -v`
+  - Verify all ~195 tests pass (182 from Phases 2.1-2.8 + ~13 from Phase 2.9)
+  - Verify no import errors from src.orchestrator.state_machine
+  - Verify test output is clean (no warnings)
+
+**Validation**: ~195 tests pass (~182 previous + ~13 new)
+
+---
+
+## Phase 2.9 Completion Checklist
+
+Phase 2.9 (StateMachine) is complete when:
+
+- [ ] StateMachine implemented in `src/orchestrator/state_machine.py`
+- [ ] All 5 states instantiated in __init__ from a single AgentFactory arg
+- [ ] process_turn is async, accepts (message: str, session: SessionState),
+  returns RespondOutput
+- [ ] _ACT_DECISIONS frozenset covers the 4 content routing paths
+- [ ] model_copy pattern used for all context accumulation
+- [ ] ClassifyState exception returns fallback RespondOutput immediately
+- [ ] ActState exception proceeds to EscalateState with act_output=None
+- [ ] Post-respond session mutation: 2 turns appended, window sliced to 10,
+  last_updated and correlation_id refreshed
+- [ ] datetime.now(timezone.utc).isoformat().replace("+00:00", "Z") used
+  for all timestamp generation (utcnow() not used)
+- [ ] FR-047 state transition logged after each state (from_state, to_state,
+  decision_reason, duration_ms, session_id)
+- [ ] FR-051 correlation_id propagated through all states via context
+- [ ] ~13 tests pass in tests/orchestrator/test_state_machine.py
+- [ ] Full suite shows ~195 tests (182 + ~13)
+- [ ] No import errors from src.orchestrator.state_machine
+
+**Expected test count**: ~13 tests across 4 test classes
+
+---
+
+## Phase 2.9 Dependencies
+
+```
+Phase 2.8 (RespondState)
+  |
+Phase 2.9 (StateMachine)
+  |
+  |-> T048 (StateMachine implementation)
+  |     |
+  |-> T049 (~13 unit tests)
+  |     |
+  +-> T050 (Full test suite validation, ~195 tests)
+```
+
+**Parallel opportunities**: None (tests depend on implementation)
+
+---
+
+**Phase 2.9 Total tasks**: 3 tasks (T048-T050)
+**Deliverables**:
+- `src/orchestrator/state_machine.py` (StateMachine, process_turn,
+  exception handling, session mutation)
+- `tests/orchestrator/test_state_machine.py` (~13 tests across 4 classes)
+- ~13 passing tests (all routing branches, exception paths, rolling window,
+  session mutation, return type contract)
