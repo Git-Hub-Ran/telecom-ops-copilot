@@ -1891,7 +1891,7 @@ context accumulation, handles exceptions, and updates session state.
 
 **Dependencies**: Phase 2.8 complete.
 
-- [ ] T048 Create `src/orchestrator/state_machine.py` with StateMachine class
+- [x] T048 Create `src/orchestrator/state_machine.py` with StateMachine class
   - Imports: `asyncio`, `time`, `uuid`, `from datetime import datetime, timezone`,
     `AgentFactory` from `src.orchestrator.agents.factory`,
     `RespondOutput`, `RoutingDecision`, `SessionState`, `StateContext`
@@ -1976,7 +1976,7 @@ contract.
 
 **Dependencies**: T048 complete.
 
-- [ ] T049 Create `tests/orchestrator/test_state_machine.py` with ~13 tests
+- [x] T049 Create `tests/orchestrator/test_state_machine.py` with ~13 tests
   - Autouse fixture: sets AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_TENANT_ID,
     VECTOR_STORE_ID; clears get_config cache
   - Fixtures:
@@ -2055,7 +2055,7 @@ session mutation, rolling window, and correlation_id refresh covered
 
 **Dependencies**: T048-T049 complete.
 
-- [ ] T050 Run full test suite
+- [x] T050 Run full test suite
   - Run `pytest tests/ -v`
   - Verify all ~195 tests pass (182 from Phases 2.1-2.8 + ~13 from Phase 2.9)
   - Verify no import errors from src.orchestrator.state_machine
