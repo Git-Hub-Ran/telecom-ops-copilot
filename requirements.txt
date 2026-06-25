@@ -11,6 +11,9 @@ azure-identity>=1.25.3
 # HTTP requests (used by notebooks for KB file fetching)
 requests>=2.34.2
 
+# Streamlit UI
+streamlit>=1.58.0
+
 # Development dependencies
 pytest>=9.0.3
 pytest-asyncio>=1.4.0
