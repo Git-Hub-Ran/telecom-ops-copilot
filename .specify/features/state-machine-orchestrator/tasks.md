@@ -2152,7 +2152,7 @@ management, FR-056 serialization, and response display.
 
 **Dependencies**: Phase 2.9 complete.
 
-- [ ] T051 Create src/ui/__init__.py and src/ui/app.py
+- [x] T051 Create src/ui/__init__.py and src/ui/app.py
   - Create src/ui/__init__.py (empty, marks package)
   - Create src/ui/app.py with the following components:
   - Imports:
@@ -2235,7 +2235,7 @@ returns a StateMachine instance with mocked dependencies.
 
 **Dependencies**: T051 complete.
 
-- [ ] T052 Create tests/ui/__init__.py and tests/ui/test_app_smoke.py with 2 tests
+- [x] T052 Create tests/ui/__init__.py and tests/ui/test_app_smoke.py with 2 tests
   - Create tests/ui/__init__.py (empty)
   - Create tests/ui/test_app_smoke.py with:
   - Imports:
