@@ -14,6 +14,9 @@ requests>=2.34.2
 # Streamlit UI
 streamlit>=1.58.0
 
+# Evaluation (Colab notebook only; requires Python 3.10+ and pip install ragas)
+ragas>=0.2.0
+
 # Development dependencies
 pytest>=9.0.3
 pytest-asyncio>=1.4.0
