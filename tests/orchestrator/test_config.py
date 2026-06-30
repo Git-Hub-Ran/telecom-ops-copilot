@@ -36,9 +36,10 @@ class TestConfig:
         # Explicitly unset VECTOR_STORE_ID if it exists
         monkeypatch.delenv("VECTOR_STORE_ID", raising=False)
 
-        # Attempt to create config should raise ValidationError
+        # _env_file=None prevents pydantic-settings from reading the project .env file,
+        # which would otherwise supply VECTOR_STORE_ID even after monkeypatch.delenv.
         with pytest.raises(ValidationError) as exc_info:
-            Config()
+            Config(_env_file=None)
 
         # Verify error message mentions the missing field
         assert "VECTOR_STORE_ID" in str(exc_info.value)
