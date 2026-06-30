@@ -11,7 +11,8 @@ rather than propagating exceptions.
 
 import asyncio
 import json
-from typing import Any
+
+from azure.ai.agents.models import MessageRole
 
 from src.orchestrator.agents.factory import AgentFactory
 from src.orchestrator.models import ClassifyOutput, ConversationTurn, StateContext
@@ -58,29 +59,6 @@ def _build_prompt_content(customer_message: str, history: list[ConversationTurn]
     lines.append(f"Current customer message: {customer_message}")
     return "\n".join(lines)
 
-
-def _extract_assistant_text(messages: Any) -> str:
-    """Extract the first assistant text response from a thread message list.
-
-    Handles both string roles ("assistant") and enum roles (.value attribute)
-    to support different versions of the azure-ai-agents SDK.
-
-    Args:
-        messages: Iterable of message objects from agents_client.list_messages().
-
-    Returns:
-        The text content of the first assistant message.
-
-    Raises:
-        RuntimeError: If no assistant text response is found.
-    """
-    for msg in messages:
-        role = msg.role if isinstance(msg.role, str) else getattr(msg.role, "value", str(msg.role))
-        if role in ("assistant", "agent"):
-            for item in msg.content:
-                if hasattr(item, "text") and item.text is not None:
-                    return item.text.value
-    raise RuntimeError("No assistant text response found in thread messages.")
 
 
 class ClassifyState(BaseState[StateContext, ClassifyOutput]):
@@ -183,8 +161,12 @@ class ClassifyState(BaseState[StateContext, ClassifyOutput]):
             azure.core.exceptions.HttpResponseError: If a Foundry API call fails.
         """
         client = self.factory.agents_client
-        thread = client.create_thread()
-        client.create_message(thread_id=thread.id, role="user", content=content)
-        client.create_and_process_run(thread_id=thread.id, agent_id=agent_id)
-        messages = client.list_messages(thread_id=thread.id)
-        return _extract_assistant_text(messages)
+        thread = client.threads.create()
+        client.messages.create(thread_id=thread.id, role="user", content=content)
+        client.runs.create_and_process(thread_id=thread.id, agent_id=agent_id)
+        msg = client.messages.get_last_message_text_by_role(
+            thread_id=thread.id, role=MessageRole.ASSISTANT
+        )
+        if msg is None:
+            raise RuntimeError("No assistant text response found in thread messages.")
+        return msg.value

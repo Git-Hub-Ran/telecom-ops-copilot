@@ -17,7 +17,6 @@ from src.orchestrator.models import (
 from src.orchestrator.states.classify import (
     ClassifyState,
     _build_prompt_content,
-    _extract_assistant_text,
     _fallback_output,
 )
 
@@ -127,44 +126,6 @@ class TestBuildPromptContent:
         for i in range(5):
             assert f"msg{i}" in content
 
-
-class TestExtractAssistantText:
-    """Tests for _extract_assistant_text helper."""
-
-    def _make_message(self, role: str, text: str) -> MagicMock:
-        item = MagicMock()
-        item.text.value = text
-        msg = MagicMock()
-        msg.role = role
-        msg.content = [item]
-        return msg
-
-    def test_extracts_text_from_assistant_message(self) -> None:
-        """Returns text value from an assistant role message."""
-        messages = [self._make_message("assistant", '{"intent":"billing"}')]
-        assert _extract_assistant_text(messages) == '{"intent":"billing"}'
-
-    def test_extracts_text_from_agent_role(self) -> None:
-        """Returns text value when role is 'agent' (newer SDK variant)."""
-        messages = [self._make_message("agent", '{"intent":"technical"}')]
-        assert _extract_assistant_text(messages) == '{"intent":"technical"}'
-
-    def test_skips_user_messages(self) -> None:
-        """Skips user messages and finds the assistant response."""
-        user_msg = self._make_message("user", "ignored")
-        assistant_msg = self._make_message("assistant", '{"intent":"info"}')
-        assert _extract_assistant_text([user_msg, assistant_msg]) == '{"intent":"info"}'
-
-    def test_raises_if_no_assistant_message(self) -> None:
-        """Raises RuntimeError if no assistant message exists."""
-        messages = [self._make_message("user", "only user")]
-        with pytest.raises(RuntimeError, match="No assistant text response"):
-            _extract_assistant_text(messages)
-
-    def test_raises_on_empty_message_list(self) -> None:
-        """Raises RuntimeError on empty message list."""
-        with pytest.raises(RuntimeError):
-            _extract_assistant_text([])
 
 
 class TestFallbackOutput:

@@ -16,6 +16,8 @@ import asyncio
 import json
 from typing import Any
 
+from azure.ai.agents.models import MessageRole
+
 from src.orchestrator.agents.factory import AgentFactory
 from src.orchestrator.models import RespondOutput, RoutingDecision, StateContext
 from src.orchestrator.observability.structured import StructuredLogger
@@ -192,21 +194,15 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         """
         client = self.factory.agents_client
         agent = self.factory.get_respond_agent()
-        thread = client.create_thread()
-        client.create_message(thread_id=thread.id, role="user", content=content)
-        client.create_and_process_run(thread_id=thread.id, agent_id=agent.id)
-        messages = client.list_messages(thread_id=thread.id)
-        for msg in messages:
-            role = (
-                msg.role
-                if isinstance(msg.role, str)
-                else getattr(msg.role, "value", str(msg.role))
-            )
-            if role in ("assistant", "agent"):
-                for item in msg.content:
-                    if hasattr(item, "text") and item.text is not None:
-                        return item.text.value
-        raise RuntimeError("No assistant text response found in respond agent thread.")
+        thread = client.threads.create()
+        client.messages.create(thread_id=thread.id, role="user", content=content)
+        client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
+        msg = client.messages.get_last_message_text_by_role(
+            thread_id=thread.id, role=MessageRole.ASSISTANT
+        )
+        if msg is None:
+            raise RuntimeError("No assistant text response found in respond agent thread.")
+        return msg.value
 
     def _build_output(self, context: StateContext, data: dict[str, Any]) -> RespondOutput:
         """Assemble RespondOutput from parsed agent response and context.
