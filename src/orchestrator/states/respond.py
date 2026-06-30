@@ -198,7 +198,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         client.messages.create(thread_id=thread.id, role="user", content=content)
         client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
         msg = client.messages.get_last_message_text_by_role(
-            thread_id=thread.id, role=MessageRole.ASSISTANT
+            thread_id=thread.id, role=MessageRole.AGENT
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in respond agent thread.")

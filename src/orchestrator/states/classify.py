@@ -165,7 +165,7 @@ class ClassifyState(BaseState[StateContext, ClassifyOutput]):
         client.messages.create(thread_id=thread.id, role="user", content=content)
         client.runs.create_and_process(thread_id=thread.id, agent_id=agent_id)
         msg = client.messages.get_last_message_text_by_role(
-            thread_id=thread.id, role=MessageRole.ASSISTANT
+            thread_id=thread.id, role=MessageRole.AGENT
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in thread messages.")
