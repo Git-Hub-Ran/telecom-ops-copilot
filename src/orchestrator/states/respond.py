@@ -202,7 +202,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in respond agent thread.")
-        return msg.value
+        return msg.text.value
 
     def _build_output(self, context: StateContext, data: dict[str, Any]) -> RespondOutput:
         """Assemble RespondOutput from parsed agent response and context.

@@ -169,4 +169,4 @@ class ClassifyState(BaseState[StateContext, ClassifyOutput]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in thread messages.")
-        return msg.value
+        return msg.text.value

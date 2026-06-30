@@ -385,7 +385,7 @@ class ActState(BaseState[StateContext, ActOutput]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in act agent thread.")
-        return msg.value
+        return msg.text.value
 
     async def _call_with_retry(
         self,

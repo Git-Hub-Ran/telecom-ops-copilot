@@ -250,7 +250,7 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in escalate agent thread.")
-        return msg.value
+        return msg.text.value
 
     def _build_payload(
         self,
