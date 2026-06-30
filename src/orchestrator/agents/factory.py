@@ -25,7 +25,7 @@ conversation state is managed via thread and run objects.
 """
 
 from azure.ai.agents import AgentsClient
-from azure.ai.agents.models import Agent
+from azure.ai.agents.models import Agent, FileSearchTool, ToolDefinition, ToolResources
 from azure.identity import DeviceCodeCredential
 
 from src.config import Config
@@ -116,7 +116,8 @@ class AgentFactory:
         """Get or create the act agent.
 
         Returns the "act-agent" from Foundry. If the agent does not exist,
-        creates it with ACT_SYSTEM_PROMPT and the configured model.
+        creates it with ACT_SYSTEM_PROMPT, the configured model, and
+        file_search enabled against Config.VECTOR_STORE_ID for KB retrieval.
 
         Returns:
             Agent object for tool-based action execution (gpt-4o by default)
@@ -124,10 +125,13 @@ class AgentFactory:
         Raises:
             azure.core.exceptions.HttpResponseError: If Foundry API call fails
         """
+        file_search = FileSearchTool(vector_store_ids=[self.config.VECTOR_STORE_ID])
         return self._get_or_create_agent(
             name=ACT_AGENT_NAME,
             model=self.config.ACT_MODEL,
             instructions=ACT_SYSTEM_PROMPT,
+            tools=file_search.definitions,
+            tool_resources=file_search.resources,
         )
 
     def get_escalate_agent(self) -> Agent:
@@ -166,7 +170,14 @@ class AgentFactory:
             instructions=RESPOND_SYSTEM_PROMPT,
         )
 
-    def _get_or_create_agent(self, name: str, model: str, instructions: str) -> Agent:
+    def _get_or_create_agent(
+        self,
+        name: str,
+        model: str,
+        instructions: str,
+        tools: list[ToolDefinition] | None = None,
+        tool_resources: ToolResources | None = None,
+    ) -> Agent:
         """Get an existing agent by name, or create if not found.
 
         This method implements idempotent agent creation:
@@ -183,6 +194,10 @@ class AgentFactory:
             name: Agent name to search for (e.g., "classifier-agent")
             model: Model deployment name (e.g., "gpt-4o-mini")
             instructions: System prompt for the agent
+            tools: Optional tool definitions to register on the agent (e.g.,
+                  file_search). None for agents that don't need tools.
+            tool_resources: Optional tool resources (e.g., vector store IDs
+                           for file_search). Must be paired with tools.
 
         Returns:
             Agent object (either existing or newly created)
@@ -201,5 +216,9 @@ class AgentFactory:
 
         # Agent not found, create new agent
         return self.agents_client.create_agent(
-            model=model, name=name, instructions=instructions
+            model=model,
+            name=name,
+            instructions=instructions,
+            tools=tools,
+            tool_resources=tool_resources,
         )
