@@ -326,8 +326,15 @@ class ActState(BaseState[StateContext, ActOutput]):
             ActOutput with kb_citations extracted from the agent JSON response,
             or resolution_status="unresolved" on agent failure.
         """
+        raw_json = ""
         try:
-            raw_json = await asyncio.to_thread(self._invoke_agent_for_kb, content)
+            raw_json = await asyncio.to_thread(
+                self._invoke_agent_for_kb, content, correlation_id
+            )
+            raw_json = raw_json.strip()
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("\n", 1)[1]
+                raw_json = raw_json.rsplit("```", 1)[0].strip()
             data = json.loads(raw_json)
             citations = [
                 KBCitation(
@@ -351,6 +358,7 @@ class ActState(BaseState[StateContext, ActOutput]):
                 level="error",
                 error=str(exc),
                 error_type=type(exc).__name__,
+                raw_response_snippet=raw_json[:200],
             )
             return ActOutput(
                 resolution_status="unresolved",
@@ -359,7 +367,7 @@ class ActState(BaseState[StateContext, ActOutput]):
                 error_details=str(exc),
             )
 
-    def _invoke_agent_for_kb(self, content: str) -> str:
+    def _invoke_agent_for_kb(self, content: str, correlation_id: str) -> str:
         """Invoke the act agent synchronously and return its JSON response text.
 
         Designed to run inside asyncio.to_thread. Uses the act agent, which has
@@ -367,6 +375,7 @@ class ActState(BaseState[StateContext, ActOutput]):
 
         Args:
             content: Customer message to send to the act agent.
+            correlation_id: Tracing ID for the temporary diagnostic log event.
 
         Returns:
             Raw JSON string from the act agent response.
@@ -379,9 +388,23 @@ class ActState(BaseState[StateContext, ActOutput]):
         agent = self.factory.get_act_agent()
         thread = client.threads.create()
         client.messages.create(thread_id=thread.id, role="user", content=content)
-        client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
+        run = client.runs.create_and_process(thread_id=thread.id, agent_id=agent.id)
         msg = client.messages.get_last_message_text_by_role(
             thread_id=thread.id, role=MessageRole.AGENT
+        )
+        # TEMPORARY diagnostic logging to investigate empty-string JSON responses.
+        # Remove once the root cause is identified and fixed.
+        self._logger.log_event(
+            event_type="act_kb_debug",
+            state_name="act",
+            correlation_id=correlation_id,
+            level="info",
+            run_status=str(run.status),
+            run_last_error=str(run.last_error) if run.last_error else None,
+            run_incomplete_details=(
+                str(run.incomplete_details) if run.incomplete_details else None
+            ),
+            msg_text_value_repr=repr(msg.text.value) if msg is not None else None,
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in act agent thread.")
