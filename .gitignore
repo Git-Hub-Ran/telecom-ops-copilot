@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Eval output files (run results are local only; not committed to repo)
+eval/results_*.csv
