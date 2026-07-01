@@ -35,9 +35,9 @@ class RouteState(BaseState[StateContext, RoutingDecision]):
     | Condition                  | Decision                    |
     |----------------------------|-----------------------------|
     | off_topic=True             | REFUSE_OFF_TOPIC            |
-    | confidence < 0.6           | ASK_CLARIFYING_QUESTION     |
     | intent="escalate"          | SKIP_TO_ESCALATE            |
     | intent="unknown"           | SKIP_TO_ESCALATE            |
+    | confidence < 0.6           | ASK_CLARIFYING_QUESTION     |
     | intent="billing"           | BILLING_PATH                |
     | intent="technical"         | TECHNICAL_PATH              |
     | intent="account"           | ACCOUNT_PATH                |
@@ -78,24 +78,23 @@ class RouteState(BaseState[StateContext, RoutingDecision]):
         if classify_output.off_topic:
             return RoutingDecision.REFUSE_OFF_TOPIC
 
-        # Priority 2: Ask for clarification on low confidence
-        # Low confidence beats intent routing (better to clarify than guess)
-        # Threshold is configurable via CLASSIFICATION_CONFIDENCE_THRESHOLD (default 0.6)
+        # Priority 2: Escalate on explicit escalation intent or unknown intent.
+        # Unknown intent always escalates regardless of confidence — low-confidence
+        # unknown means the classifier could not interpret the input at all, which
+        # warrants a human. This check must come before the confidence gate so that
+        # unknown+low_confidence reaches SKIP_TO_ESCALATE, not ASK_CLARIFYING_QUESTION.
+        if classify_output.intent in ("escalate", "unknown"):
+            return RoutingDecision.SKIP_TO_ESCALATE
+
+        # Priority 3: Ask for clarification on low confidence (known intents only).
+        # At this point intent is one of {billing, technical, account, info}.
+        # For these, low confidence means the query is ambiguous and needs clarification.
         threshold = get_config().CLASSIFICATION_CONFIDENCE_THRESHOLD
         if classify_output.confidence < threshold:
             return RoutingDecision.ASK_CLARIFYING_QUESTION
 
-        # Priority 3: Handle explicit escalation intent
-        if classify_output.intent == "escalate":
-            return RoutingDecision.SKIP_TO_ESCALATE
-
-        # Priority 4: Handle unknown intent (also escalates)
-        if classify_output.intent == "unknown":
-            return RoutingDecision.SKIP_TO_ESCALATE
-
-        # Priority 5-8: Map known intents to their paths
-        # At this point: off_topic=False, confidence >= 0.6, intent is one of
-        # {billing, technical, account, info}
+        # Priority 4-7: Map known intents to their paths
+        # At this point: off_topic=False, intent not escalate/unknown, confidence >= threshold
         intent_to_path = {
             "billing": RoutingDecision.BILLING_PATH,
             "technical": RoutingDecision.TECHNICAL_PATH,
