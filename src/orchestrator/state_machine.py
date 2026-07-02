@@ -255,14 +255,13 @@ class StateMachine:
         t0 = time.monotonic()
         respond_output = await self._respond.run(context)
         respond_ms = int((time.monotonic() - t0) * 1000)
-        self._logger.log_event(
-            event_type="state_transition",
-            state_name="respond",
-            correlation_id=correlation_id,
-            level="info",
+        log_state_transition(
+            logger=self._logger,
             from_state="respond",
             to_state="done",
+            correlation_id=correlation_id,
             duration_ms=respond_ms,
+            decision_reason="respond_complete",
         )
 
         # --- Post-respond session mutation ---

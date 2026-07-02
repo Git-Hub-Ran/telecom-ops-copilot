@@ -344,6 +344,14 @@ class ActState(BaseState[StateContext, ActOutput]):
                 )
                 for c in data.get("kb_citations", [])
             ]
+            self._logger.log_event(
+                event_type="act_kb_result",
+                state_name="act",
+                correlation_id=correlation_id,
+                level="info",
+                resolution_status="resolved",
+                kb_citation_count=len(citations),
+            )
             return ActOutput(
                 resolution_status="resolved",
                 tools_called=[],
