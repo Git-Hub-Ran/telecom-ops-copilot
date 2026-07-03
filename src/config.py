@@ -37,6 +37,8 @@ class Config(BaseSettings):
         CLASSIFICATION_CONFIDENCE_THRESHOLD: Confidence threshold (default: 0.6)
         RETRY_BACKOFF_MS: Retry backoff in milliseconds (default: 250)
         MAX_CONVERSATION_TURNS: Max conversation turns in rolling window (default: 10)
+        BILLING_DATA_SOURCE: Billing data backend, 'json' or 'sqlite' (default: json)
+        BILLING_DB_PATH: Path to SQLite billing database (default: data/billing.db)
     """
 
     # Azure AI Foundry authentication (DeviceCodeCredential)
@@ -86,6 +88,17 @@ class Config(BaseSettings):
         default=10,
         ge=1,
         description="Maximum conversation turns in rolling window (per FR-055)"
+    )
+
+    # Billing data source
+    BILLING_DATA_SOURCE: str = Field(
+        default="json",
+        pattern=r"^(json|sqlite)$",
+        description="Billing data backend: 'json' (default) or 'sqlite'"
+    )
+    BILLING_DB_PATH: str = Field(
+        default="data/billing.db",
+        description="Path to SQLite billing database (relative to project root)"
     )
 
     # Data paths (computed, not from env)
