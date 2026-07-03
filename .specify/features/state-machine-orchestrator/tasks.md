@@ -2310,3 +2310,301 @@ Phase 2.10 (Streamlit UI)
 - src/ui/app.py (Streamlit chat UI, session management, FR-056
   serialization, citations, escalation display)
 - tests/ui/test_app_smoke.py (2 smoke tests)
+
+---
+
+# Phase 2.13: SQLite DataSource for get_billing_info (T053-T062)
+
+**Purpose**: Replace direct JSON file reads in `get_billing_info` with a
+DataSource abstraction. A `JSONBillingDataSource` keeps existing behaviour;
+a `SQLiteBillingDataSource` enables database-backed billing queries. A config
+switch selects which source is active.
+
+**Scope**: `src/data/`, `src/tools/billing.py`, `src/config.py`,
+`scripts/setup_billing_db.py`, `tests/data/`, `tests/tools/test_billing.py`
+
+---
+
+## T053 Add BILLING_DATA_SOURCE and BILLING_DB_PATH to Config
+
+File: `src/config.py`
+
+Add two optional fields to the `Config` class:
+
+```python
+BILLING_DATA_SOURCE: str = Field(
+    default="json",
+    pattern=r"^(json|sqlite)$",
+    description="Billing data backend: 'json' (default) or 'sqlite'"
+)
+BILLING_DB_PATH: str = Field(
+    default="data/billing.db",
+    description="Path to SQLite billing database (relative to project root)"
+)
+```
+
+Update the docstring to document both fields.
+
+Acceptance:
+- [ ] `get_config().BILLING_DATA_SOURCE` returns `"json"` with no `.env` override
+- [ ] Pydantic raises `ValidationError` for values outside `json|sqlite`
+- [ ] `get_config().BILLING_DB_PATH` returns `"data/billing.db"` with no `.env` override
+- [ ] No existing tests broken
+
+---
+
+## T054 Create src/data/ package with BillingDataSource Protocol
+
+Files: `src/data/__init__.py`, `src/data/billing_data_source.py`
+
+Define the `BillingDataSource` Protocol:
+
+```python
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class BillingDataSource(Protocol):
+    def get_bills(self, account_id: str) -> list[dict]:
+        """Return all bills for account_id as plain dicts."""
+        ...
+```
+
+Return type is `list[dict]` (not `list[Bill]`) to avoid a circular import
+with `src/orchestrator/models/`. `__init__.py` exports `BillingDataSource`.
+
+Acceptance:
+- [ ] `from src.data import BillingDataSource` works
+- [ ] `isinstance(obj, BillingDataSource)` works at runtime (runtime_checkable)
+- [ ] No import of `Bill` or any orchestrator model in this module
+
+---
+
+## T055 Implement JSONBillingDataSource
+
+File: `src/data/json_billing_data_source.py`
+
+```python
+class JSONBillingDataSource:
+    def __init__(self, json_path: Path) -> None: ...
+    def get_bills(self, account_id: str) -> list[dict]: ...
+```
+
+`get_bills` loads the JSON file, filters by `account_id`, and returns
+matching records as plain dicts (same data the current billing.py loads).
+No sorting; caller is responsible for ordering.
+
+Acceptance:
+- [ ] Returns correct records for a known `account_id`
+- [ ] Returns `[]` for an unknown `account_id`
+- [ ] Does not import from `src/orchestrator/`
+- [ ] Unit test in `tests/data/test_json_billing_data_source.py`
+
+---
+
+## T056 Implement SQLiteBillingDataSource
+
+File: `src/data/sqlite_billing_data_source.py`
+
+```python
+class SQLiteBillingDataSource:
+    def __init__(self, db_path: Path) -> None: ...
+    def get_bills(self, account_id: str) -> list[dict]: ...
+```
+
+`get_bills` queries:
+
+```sql
+SELECT * FROM bills WHERE account_id = ? ORDER BY issue_date DESC
+```
+
+Returns rows as `list[dict]` using `sqlite3.Row` with `row_factory`.
+The `line_items` column is stored as JSON text; deserialize it with
+`json.loads` before returning.
+
+Acceptance:
+- [ ] Returns records in `issue_date DESC` order
+- [ ] `line_items` field is a Python list, not a JSON string
+- [ ] Returns `[]` for unknown `account_id`
+- [ ] Unit test in `tests/data/test_sqlite_billing_data_source.py`
+      (uses an in-memory SQLite DB seeded with fixture data)
+
+---
+
+## T057 [P] Write scripts/setup_billing_db.py
+
+File: `scripts/setup_billing_db.py`
+
+Script reads `mock-data/billing.json`, creates `data/billing.db` (creating
+`data/` if absent), and inserts all bill records into a `bills` table:
+
+```sql
+CREATE TABLE IF NOT EXISTS bills (
+    bill_id       TEXT PRIMARY KEY,
+    account_id    TEXT NOT NULL,
+    issue_date    TEXT NOT NULL,
+    due_date      TEXT NOT NULL,
+    total_due     REAL NOT NULL,
+    amount_paid   REAL NOT NULL,
+    status        TEXT NOT NULL,
+    line_items    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bills_account_date
+    ON bills (account_id, issue_date DESC);
+```
+
+`line_items` is serialized with `json.dumps`. The script is idempotent
+(drop and recreate, or use `INSERT OR REPLACE`).
+
+Add `data/billing.db` to `.gitignore`.
+
+Acceptance:
+- [ ] `python scripts/setup_billing_db.py` creates `data/billing.db`
+- [ ] Row count matches record count in `mock-data/billing.json`
+- [ ] Script is idempotent (safe to run twice)
+- [ ] `data/billing.db` appears in `.gitignore`
+
+---
+
+## T058 Add _get_data_source() factory to billing.py
+
+File: `src/tools/billing.py`
+
+Add a private factory function:
+
+```python
+def _get_data_source() -> BillingDataSource:
+    cfg = get_config()
+    if cfg.BILLING_DATA_SOURCE == "sqlite":
+        return SQLiteBillingDataSource(PROJECT_ROOT / cfg.BILLING_DB_PATH)
+    return JSONBillingDataSource(cfg.MOCK_DATA_DIR / "billing.json")
+```
+
+`_get_data_source()` is called at runtime inside `get_billing_info`, not at
+module import time. This keeps tests simple: patching `get_config()` is
+sufficient to switch backends without touching the module.
+
+Do not modify the public signature of `get_billing_info`.
+
+Acceptance:
+- [ ] `_get_data_source()` returns a `JSONBillingDataSource` by default
+- [ ] Returns `SQLiteBillingDataSource` when `BILLING_DATA_SOURCE="sqlite"`
+- [ ] No module-level data source instantiation
+- [ ] Existing `test_billing.py` tests still pass
+
+---
+
+## T059 Refactor get_billing_info to use DataSource
+
+File: `src/tools/billing.py`
+
+Replace the direct JSON file I/O block in `get_billing_info` with a
+DataSource call:
+
+```python
+bills_raw = _get_data_source().get_bills(account_id)
+```
+
+Then reconstruct `Bill` objects from the returned dicts (same as current
+logic). Sort by `issue_date` descending after retrieval.
+
+The function's public signature, return type, and error behaviour are
+unchanged.
+
+Acceptance:
+- [ ] `get_billing_info` no longer opens any file directly
+- [ ] Returns the same result as before for the same input
+- [ ] All existing `test_billing.py` tests pass without modification
+      (they patch `get_config()` or the data source, not file I/O)
+
+---
+
+## T060 [P] Add tests/data/ package and DataSource unit tests
+
+Files: `tests/data/__init__.py`,
+       `tests/data/test_json_billing_data_source.py`,
+       `tests/data/test_sqlite_billing_data_source.py`
+
+`test_json_billing_data_source.py`: load from the real
+`mock-data/billing.json` fixture and assert known records are returned.
+
+`test_sqlite_billing_data_source.py`: create an in-memory SQLite DB
+(`:memory:`), insert fixture rows, assert correct retrieval and ordering.
+
+Both test modules must pass without any `.env` or Azure credentials.
+
+Acceptance:
+- [ ] Both test files exist and are collected by pytest
+- [ ] All tests pass with `pytest tests/data/`
+
+---
+
+## T061 Update test_billing.py to cover both backends
+
+File: `tests/tools/test_billing.py`
+
+Add tests that:
+1. Patch `get_config()` to return `BILLING_DATA_SOURCE="sqlite"` and a
+   temp DB path, verify `get_billing_info` uses `SQLiteBillingDataSource`
+2. Patch `get_config()` to return `BILLING_DATA_SOURCE="json"`, verify
+   `JSONBillingDataSource` is used
+
+No new Azure mocks needed; billing is pure Python.
+
+Acceptance:
+- [ ] Existing tests unmodified and passing
+- [ ] 2 new parametrized or separate tests for backend switching
+- [ ] `pytest tests/tools/test_billing.py` passes
+
+---
+
+## T062 Full test suite passes with Phase 2.13 changes
+
+Run `pytest tests/` and confirm:
+- [ ] No regressions in existing 305 tests
+- [ ] New tests in `tests/data/` and `tests/tools/test_billing.py` all pass
+- [ ] Total test count increases by the number of new tests added
+- [ ] No import errors from the new `src/data/` package
+
+---
+
+## Phase 2.13 Completion Checklist
+
+- [ ] `src/data/__init__.py` exports `BillingDataSource`
+- [ ] `src/data/json_billing_data_source.py` implements Protocol
+- [ ] `src/data/sqlite_billing_data_source.py` implements Protocol
+- [ ] `scripts/setup_billing_db.py` seeds `data/billing.db` from JSON
+- [ ] `data/billing.db` in `.gitignore`
+- [ ] `src/config.py` has `BILLING_DATA_SOURCE` and `BILLING_DB_PATH`
+- [ ] `src/tools/billing.py` uses `_get_data_source()` factory
+- [ ] `get_billing_info` public API unchanged
+- [ ] All tests pass
+
+---
+
+## Phase 2.13 Dependencies
+
+```
+T053 (Config fields)
+  |
+T058 (_get_data_source factory)
+  |
+T059 (refactor get_billing_info)
+  |
+T061 (test backend switching)
+  |
+T062 (full suite)
+
+T054 (Protocol) -+- T055 (JSON impl) --> T060 (unit tests)
+                 +- T056 (SQLite impl) -> T060 (unit tests)
+
+T057 (setup_billing_db.py) [parallel with T054-T056]
+```
+
+**Phase 2.13 Total tasks**: 10 tasks (T053-T062)
+**Deliverables**:
+- src/data/ package (Protocol + 2 implementations)
+- scripts/setup_billing_db.py
+- src/config.py additions
+- src/tools/billing.py refactor
+- tests/data/ package (unit tests for both implementations)
+- Updated tests/tools/test_billing.py
