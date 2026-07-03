@@ -28,6 +28,9 @@ RouteState fix (July 1 2026) ensures `unknown` always routes to `SKIP_TO_ESCALAT
 before the confidence gate, so these queries reach a human agent. The intent label
 mismatch is an eval metric artefact, not a functional failure.
 
+Outcome-based scoring was considered but rejected to keep intent accuracy and
+escalation recall independent. Both metrics are reported separately.
+
 ### Boundary rule regressions (STD-029, STD-047)
 
 The classifier prompt boundary rules added July 1 2026 fixed 6 of 6 targeted

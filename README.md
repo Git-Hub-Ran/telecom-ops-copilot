@@ -87,17 +87,16 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 91% | >=90% | PASS |
-| Tool selection | 83.1% | >=85% | FAIL |
+| Intent accuracy | 86% | >=90% | FAIL |
+| Tool selection | 82.9% | >=85% | FAIL |
 | Escalation precision | 86.7% | >=85% | PASS |
 | Escalation recall | 92.9% | >=80% | PASS |
 | Latency p95 | ~20s | <=5s | FAIL (structural, see below) |
 
-Intent accuracy uses outcome-based scoring for injection attempts: a query
-classified as `unknown` that correctly routes to escalation counts as correct
-when the golden set also expects escalation. This reflects pipeline behaviour
-rather than label matching for cases where the classifier and the golden set
-use different but functionally equivalent labels.
+Intent accuracy uses exact label matching. The classifier correctly identifies
+injection attempts as unknown intent, which routes to escalation via RouteState.
+This behaviour is captured separately in escalation recall (92.9% PASS). The
+two metrics are intentionally independent.
 
 Remaining intent failures are hard adversarial cases (extreme vagueness,
 multi-intent queries, abusive phrasing) and two genuine boundary ambiguities
