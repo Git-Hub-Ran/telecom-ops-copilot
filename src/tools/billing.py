@@ -12,6 +12,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from src.config import PROJECT_ROOT, get_config
+from src.data import BillingDataSource
+from src.data.json_billing_data_source import JSONBillingDataSource
+from src.data.sqlite_billing_data_source import SQLiteBillingDataSource
+
 
 class LineItem(BaseModel):
     """A single line item on a bill."""
@@ -74,6 +79,13 @@ class GetBillingInfoResult(BaseModel):
     error_message: Optional[str] = Field(
         default=None, description="Human-readable error explanation if success=False"
     )
+
+
+def _get_data_source() -> BillingDataSource:
+    cfg = get_config()
+    if cfg.BILLING_DATA_SOURCE == "sqlite":
+        return SQLiteBillingDataSource(PROJECT_ROOT / cfg.BILLING_DB_PATH)
+    return JSONBillingDataSource(cfg.MOCK_DATA_DIR / "billing.json")
 
 
 def get_billing_info(account_id: str, months: int = 3) -> GetBillingInfoResult:
