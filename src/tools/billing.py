@@ -4,10 +4,7 @@ This module provides the get_billing_info function, which retrieves
 recent billing history for a customer account.
 """
 
-import json
 import re
-from datetime import datetime
-from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -154,29 +151,11 @@ def get_billing_info(account_id: str, months: int = 3) -> GetBillingInfoResult:
             ),
         )
 
-    # Load billing data
-    data_path = Path(__file__).parent.parent.parent / "mock-data" / "billing.json"
-    try:
-        with open(data_path, "r", encoding="utf-8") as f:
-            all_bills = json.load(f)
-    except FileNotFoundError:
-        return GetBillingInfoResult(
-            success=False,
-            error_code="data_unavailable",
-            error_message=f"Billing database file not found at {data_path}",
-        )
-    except json.JSONDecodeError as e:
-        return GetBillingInfoResult(
-            success=False,
-            error_code="data_unavailable",
-            error_message=f"Failed to parse billing database: {e}",
-        )
-
-    # Filter bills for this account
-    account_bills = [bill for bill in all_bills if bill["account_id"] == account_id]
+    # Load billing data via configured data source
+    bills_raw = _get_data_source().get_bills(account_id)
 
     # Sort by issue_date descending (most recent first)
-    account_bills.sort(key=lambda b: b["issue_date"], reverse=True)
+    account_bills = sorted(bills_raw, key=lambda b: b["issue_date"], reverse=True)
 
     # Limit to requested number of months
     limited_bills = account_bills[:months]
