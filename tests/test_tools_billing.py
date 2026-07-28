@@ -1,8 +1,39 @@
 """Tests for billing information lookup tool."""
 
+import json
+import sqlite3
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 import pytest
 
+from src.config import PROJECT_ROOT
 from src.tools.billing import get_billing_info
+
+_CREATE_BILLS_TABLE = """
+CREATE TABLE bills (
+    bill_id                TEXT PRIMARY KEY,
+    account_id             TEXT NOT NULL,
+    billing_period_start   TEXT NOT NULL,
+    billing_period_end     TEXT NOT NULL,
+    issue_date             TEXT NOT NULL,
+    due_date               TEXT NOT NULL,
+    subtotal               REAL NOT NULL,
+    discounts              REAL NOT NULL,
+    taxes                  REAL NOT NULL,
+    total                  REAL NOT NULL,
+    status                 TEXT NOT NULL,
+    paid_date              TEXT,
+    line_items             TEXT NOT NULL
+);
+"""
+
+_SQLITE_FIXTURE_ROW = (
+    "BILL-10001-202605", "ACC-10001",
+    "2026-05-04", "2026-06-03", "2026-05-04", "2026-05-25",
+    25.0, -5.0, 2.0, 22.0, "paid", "2026-05-22",
+    json.dumps([{"description": "Essential plan", "amount": 25.0}]),
+)
 
 
 class TestGetBillingInfo:
@@ -318,3 +349,40 @@ class TestGetBillingInfo:
         assert result.success is False
         assert result.billing_info is None
         assert result.error_code == "invalid_format"
+
+
+class TestGetBillingInfoBackendSwitch:
+    """Verify get_billing_info routes to the correct DataSource backend."""
+
+    def test_sqlite_backend_reads_from_db(self, tmp_path):
+        db_path = tmp_path / "billing.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute(_CREATE_BILLS_TABLE)
+        conn.execute(
+            "INSERT INTO bills VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+            _SQLITE_FIXTURE_ROW,
+        )
+        conn.commit()
+        conn.close()
+
+        mock_cfg = MagicMock()
+        mock_cfg.BILLING_DATA_SOURCE = "sqlite"
+        mock_cfg.BILLING_DB_PATH = str(db_path)
+
+        with patch("src.tools.billing.get_config", return_value=mock_cfg):
+            result = get_billing_info("ACC-10001", months=3)
+
+        assert result.success is True
+        assert result.billing_info.total_bills == 1
+        assert result.billing_info.bills[0].bill_id == "BILL-10001-202605"
+
+    def test_json_backend_reads_from_file(self):
+        mock_cfg = MagicMock()
+        mock_cfg.BILLING_DATA_SOURCE = "json"
+        mock_cfg.MOCK_DATA_DIR = PROJECT_ROOT / "mock-data"
+
+        with patch("src.tools.billing.get_config", return_value=mock_cfg):
+            result = get_billing_info("ACC-10001", months=3)
+
+        assert result.success is True
+        assert result.billing_info.total_bills == 3
