@@ -271,6 +271,15 @@ replace this with a non-interactive credential (Managed Identity, client
 secret, or workload identity federation) and would add customer-facing
 authentication for the Streamlit interface.
 
+**No entity extraction from conversation history.** The `account_id` used by
+tool calls comes from `session_state.account_id`, which is only populated if
+the UI passes it in. The system does not extract account IDs or other entities
+(zip codes, plan names) from customer messages or conversation history. A
+customer who provides their account ID in response to a prompt will find the
+agent asks again on the next turn. Fixing this would require an entity
+extraction step after ClassifyState that parses structured values from the
+message text and stores them in SessionState.
+
 **Latency constraint from Foundry polling architecture.** The p95 latency is
 approximately 20 seconds. Each Foundry agent run requires at minimum four
 HTTP round trips: create thread, post message, start run, poll until complete,
