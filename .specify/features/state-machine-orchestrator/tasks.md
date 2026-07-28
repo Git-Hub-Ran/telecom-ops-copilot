@@ -2346,10 +2346,10 @@ BILLING_DB_PATH: str = Field(
 Update the docstring to document both fields.
 
 Acceptance:
-- [ ] `get_config().BILLING_DATA_SOURCE` returns `"json"` with no `.env` override
-- [ ] Pydantic raises `ValidationError` for values outside `json|sqlite`
-- [ ] `get_config().BILLING_DB_PATH` returns `"data/billing.db"` with no `.env` override
-- [ ] No existing tests broken
+- [x] `get_config().BILLING_DATA_SOURCE` returns `"json"` with no `.env` override
+- [x] Pydantic raises `ValidationError` for values outside `json|sqlite`
+- [x] `get_config().BILLING_DB_PATH` returns `"data/billing.db"` with no `.env` override
+- [x] No existing tests broken
 
 ---
 
@@ -2373,9 +2373,9 @@ Return type is `list[dict]` (not `list[Bill]`) to avoid a circular import
 with `src/orchestrator/models/`. `__init__.py` exports `BillingDataSource`.
 
 Acceptance:
-- [ ] `from src.data import BillingDataSource` works
-- [ ] `isinstance(obj, BillingDataSource)` works at runtime (runtime_checkable)
-- [ ] No import of `Bill` or any orchestrator model in this module
+- [x] `from src.data import BillingDataSource` works
+- [x] `isinstance(obj, BillingDataSource)` works at runtime (runtime_checkable)
+- [x] No import of `Bill` or any orchestrator model in this module
 
 ---
 
@@ -2394,10 +2394,10 @@ matching records as plain dicts (same data the current billing.py loads).
 No sorting; caller is responsible for ordering.
 
 Acceptance:
-- [ ] Returns correct records for a known `account_id`
-- [ ] Returns `[]` for an unknown `account_id`
-- [ ] Does not import from `src/orchestrator/`
-- [ ] Unit test in `tests/data/test_json_billing_data_source.py`
+- [x] Returns correct records for a known `account_id`
+- [x] Returns `[]` for an unknown `account_id`
+- [x] Does not import from `src/orchestrator/`
+- [x] Unit test in `tests/data/test_json_billing_data_source.py`
 
 ---
 
@@ -2422,10 +2422,10 @@ The `line_items` column is stored as JSON text; deserialize it with
 `json.loads` before returning.
 
 Acceptance:
-- [ ] Returns records in `issue_date DESC` order
-- [ ] `line_items` field is a Python list, not a JSON string
-- [ ] Returns `[]` for unknown `account_id`
-- [ ] Unit test in `tests/data/test_sqlite_billing_data_source.py`
+- [x] Returns records in `issue_date DESC` order
+- [x] `line_items` field is a Python list, not a JSON string
+- [x] Returns `[]` for unknown `account_id`
+- [x] Unit test in `tests/data/test_sqlite_billing_data_source.py`
       (uses an in-memory SQLite DB seeded with fixture data)
 
 ---
@@ -2458,10 +2458,10 @@ CREATE INDEX IF NOT EXISTS idx_bills_account_date
 Add `data/billing.db` to `.gitignore`.
 
 Acceptance:
-- [ ] `python scripts/setup_billing_db.py` creates `data/billing.db`
-- [ ] Row count matches record count in `mock-data/billing.json`
-- [ ] Script is idempotent (safe to run twice)
-- [ ] `data/billing.db` appears in `.gitignore`
+- [x] `python scripts/setup_billing_db.py` creates `data/billing.db`
+- [x] Row count matches record count in `mock-data/billing.json`
+- [x] Script is idempotent (safe to run twice)
+- [x] `data/billing.db` appears in `.gitignore`
 
 ---
 
@@ -2486,10 +2486,10 @@ sufficient to switch backends without touching the module.
 Do not modify the public signature of `get_billing_info`.
 
 Acceptance:
-- [ ] `_get_data_source()` returns a `JSONBillingDataSource` by default
-- [ ] Returns `SQLiteBillingDataSource` when `BILLING_DATA_SOURCE="sqlite"`
-- [ ] No module-level data source instantiation
-- [ ] Existing `test_billing.py` tests still pass
+- [x] `_get_data_source()` returns a `JSONBillingDataSource` by default
+- [x] Returns `SQLiteBillingDataSource` when `BILLING_DATA_SOURCE="sqlite"`
+- [x] No module-level data source instantiation
+- [x] Existing `test_billing.py` tests still pass
 
 ---
 
@@ -2511,9 +2511,9 @@ The function's public signature, return type, and error behaviour are
 unchanged.
 
 Acceptance:
-- [ ] `get_billing_info` no longer opens any file directly
-- [ ] Returns the same result as before for the same input
-- [ ] All existing `test_billing.py` tests pass without modification
+- [x] `get_billing_info` no longer opens any file directly
+- [x] Returns the same result as before for the same input
+- [x] All existing `test_billing.py` tests pass without modification
       (they patch `get_config()` or the data source, not file I/O)
 
 ---
@@ -2533,8 +2533,8 @@ Files: `tests/data/__init__.py`,
 Both test modules must pass without any `.env` or Azure credentials.
 
 Acceptance:
-- [ ] Both test files exist and are collected by pytest
-- [ ] All tests pass with `pytest tests/data/`
+- [x] Both test files exist and are collected by pytest
+- [x] All tests pass with `pytest tests/data/`
 
 ---
 
@@ -2551,33 +2551,33 @@ Add tests that:
 No new Azure mocks needed; billing is pure Python.
 
 Acceptance:
-- [ ] Existing tests unmodified and passing
-- [ ] 2 new parametrized or separate tests for backend switching
-- [ ] `pytest tests/tools/test_billing.py` passes
+- [x] Existing tests unmodified and passing
+- [x] 2 new parametrized or separate tests for backend switching
+- [x] `pytest tests/tools/test_billing.py` passes
 
 ---
 
 ## T062 Full test suite passes with Phase 2.13 changes
 
 Run `pytest tests/` and confirm:
-- [ ] No regressions in existing 305 tests
-- [ ] New tests in `tests/data/` and `tests/tools/test_billing.py` all pass
-- [ ] Total test count increases by the number of new tests added
-- [ ] No import errors from the new `src/data/` package
+- [x] No regressions in existing 305 tests
+- [x] New tests in `tests/data/` and `tests/tools/test_billing.py` all pass
+- [x] Total test count increases by the number of new tests added
+- [x] No import errors from the new `src/data/` package
 
 ---
 
 ## Phase 2.13 Completion Checklist
 
-- [ ] `src/data/__init__.py` exports `BillingDataSource`
-- [ ] `src/data/json_billing_data_source.py` implements Protocol
-- [ ] `src/data/sqlite_billing_data_source.py` implements Protocol
-- [ ] `scripts/setup_billing_db.py` seeds `data/billing.db` from JSON
-- [ ] `data/billing.db` in `.gitignore`
-- [ ] `src/config.py` has `BILLING_DATA_SOURCE` and `BILLING_DB_PATH`
-- [ ] `src/tools/billing.py` uses `_get_data_source()` factory
-- [ ] `get_billing_info` public API unchanged
-- [ ] All tests pass
+- [x] `src/data/__init__.py` exports `BillingDataSource`
+- [x] `src/data/json_billing_data_source.py` implements Protocol
+- [x] `src/data/sqlite_billing_data_source.py` implements Protocol
+- [x] `scripts/setup_billing_db.py` seeds `data/billing.db` from JSON
+- [x] `data/billing.db` in `.gitignore`
+- [x] `src/config.py` has `BILLING_DATA_SOURCE` and `BILLING_DB_PATH`
+- [x] `src/tools/billing.py` uses `_get_data_source()` factory
+- [x] `get_billing_info` public API unchanged
+- [x] All tests pass
 
 ---
 
