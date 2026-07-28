@@ -228,6 +228,36 @@ values.
 
 ---
 
+### ModuleNotFoundError: No module named 'src'
+
+**Symptom:** Streamlit starts but immediately shows:
+
+```
+ModuleNotFoundError: No module named 'src'
+```
+
+**Cause:** Python cannot find the `src/` package because the project root is
+not on the Python path. This happens when Streamlit is launched directly
+without setting `PYTHONPATH`.
+
+**Fix (Windows):**
+
+```
+set PYTHONPATH=C:\path\to\telecom-ops-copilot
+streamlit run src/ui/app.py
+```
+
+Replace the path with your actual project root. Run both commands in the
+same terminal window.
+
+**Fix (Mac/Linux):**
+
+```bash
+PYTHONPATH=. streamlit run src/ui/app.py
+```
+
+---
+
 ## 7. Reading the structured logs
 
 The pipeline emits one JSON log line per event to stdout. Each line has the
