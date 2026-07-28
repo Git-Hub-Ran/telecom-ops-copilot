@@ -1,5 +1,7 @@
 # TelSano Customer Service Copilot
 
+[![Tests](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml/badge.svg?branch=Dev)](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml)
+
 TelSano Copilot is a customer service AI agent for a US telecom provider. It handles
 inbound customer queries across four domains (billing, account management, technical
 support, and general information) through a deterministic 5-state pipeline backed by
