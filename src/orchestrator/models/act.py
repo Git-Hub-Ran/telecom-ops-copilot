@@ -67,6 +67,10 @@ class KBCitation(BaseModel):
     relevance: str = Field(
         description="Explanation of why this citation is relevant to the customer query"
     )
+    text_content: Optional[str] = Field(
+        default=None,
+        description="Verbatim passage from the KB document that answers the customer's question"
+    )
 
 
 class ActOutput(BaseModel):

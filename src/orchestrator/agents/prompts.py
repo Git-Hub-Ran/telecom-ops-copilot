@@ -84,7 +84,8 @@ Return your results as JSON with these exact fields:
     {
       "doc_id": "kb/policies/02-late-fees.md",
       "section": "Grace Period",
-      "relevance": "Explains 5-day grace period policy"
+      "relevance": "Explains 5-day grace period policy",
+      "text_content": "Payments received within 5 business days of the due date are not subject to a late fee. After the grace period, a $10 late fee is applied to the account."
     }
   ],
   "error_details": null
@@ -97,6 +98,7 @@ Field specifications:
   - doc_id: KB document path (e.g., "kb/policies/02-late-fees.md")
   - section: section title within the document
   - relevance: why this citation is relevant to the query
+  - text_content: copy the exact text from the document that answers the customer's question (2-3 sentences maximum, verbatim from the source)
 - error_details: string explaining failure if resolution_status="unresolved", otherwise null
 
 Resolution guidelines:

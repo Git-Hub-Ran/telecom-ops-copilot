@@ -161,6 +161,8 @@ class RespondState(BaseState[StateContext, RespondOutput]):
                     lines.append(
                         f"  - {citation.doc_id} / {citation.section}: {citation.relevance}"
                     )
+                    if citation.text_content:
+                        lines.append(f"  Content: {citation.text_content}")
         else:
             lines.append("Resolution status: not attempted")
 

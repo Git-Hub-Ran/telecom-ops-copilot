@@ -359,6 +359,7 @@ class ActState(BaseState[StateContext, ActOutput]):
                     doc_id=c.get("doc_id", ""),
                     section=c.get("section", ""),
                     relevance=c.get("relevance", ""),
+                    text_content=c.get("text_content") or None,
                 )
                 for c in data.get("kb_citations", [])
             ]
