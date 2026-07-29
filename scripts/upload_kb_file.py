@@ -47,7 +47,7 @@ def main() -> None:
     print(f"File uploaded: {uploaded.id}")
 
     print(f"Adding to vector store {cfg.VECTOR_STORE_ID} ...")
-    vf = client.vector_stores.files.create_and_poll(
+    vf = client.vector_store_files.create_and_poll(
         vector_store_id=cfg.VECTOR_STORE_ID,
         file_id=uploaded.id,
     )
