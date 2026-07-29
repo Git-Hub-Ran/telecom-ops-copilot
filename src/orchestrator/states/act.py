@@ -197,11 +197,15 @@ class ActState(BaseState[StateContext, ActOutput]):
             account_id=account_id,
             months=3,
         )
+        tool_results_json = (
+            json.dumps(result.model_dump(), default=str) if record.success and result is not None else None
+        )
         return ActOutput(
             resolution_status=_status_from_record(record),
             tools_called=[record],
             kb_citations=[],
             error_details=record.error_code if not record.success else None,
+            tool_results_json=tool_results_json,
         )
 
     async def _run_account(
@@ -232,11 +236,15 @@ class ActState(BaseState[StateContext, ActOutput]):
             correlation_id=correlation_id,
             account_id=account_id,
         )
+        tool_results_json = (
+            json.dumps(result.model_dump(), default=str) if record.success and result is not None else None
+        )
         return ActOutput(
             resolution_status=_status_from_record(record),
             tools_called=[record],
             kb_citations=[],
             error_details=record.error_code if not record.success else None,
+            tool_results_json=tool_results_json,
         )
 
     async def _run_technical(
@@ -290,7 +298,7 @@ class ActState(BaseState[StateContext, ActOutput]):
 
         # Step 2: check outage using billing_zip from account
         billing_zip: str = acct_result.account.billing_zip
-        _, outage_record = await self._call_with_retry(
+        outage_result, outage_record = await self._call_with_retry(
             check_network_outage,
             tool_name="check_network_outage",
             correlation_id=correlation_id,
@@ -299,7 +307,7 @@ class ActState(BaseState[StateContext, ActOutput]):
         records.append(outage_record)
 
         # Step 3: speed diagnostic (always runs if step 1 succeeded)
-        _, diag_record = await self._call_with_retry(
+        diag_result, diag_record = await self._call_with_retry(
             run_speed_diagnostic,
             tool_name="run_speed_diagnostic",
             correlation_id=correlation_id,
@@ -307,12 +315,22 @@ class ActState(BaseState[StateContext, ActOutput]):
         )
         records.append(diag_record)
 
+        results_data: dict = {}
+        if acct_record.success and acct_result is not None:
+            results_data["get_customer_account"] = acct_result.model_dump()
+        if outage_record.success and outage_result is not None:
+            results_data["check_network_outage"] = outage_result.model_dump()
+        if diag_record.success and diag_result is not None:
+            results_data["run_speed_diagnostic"] = diag_result.model_dump()
+        tool_results_json = json.dumps(results_data, default=str) if results_data else None
+
         statuses = [_status_from_record(r) for r in records]
         return ActOutput(
             resolution_status=_worst_status(statuses),
             tools_called=records,
             kb_citations=[],
             error_details=_first_error(records),
+            tool_results_json=tool_results_json,
         )
 
     async def _run_info(self, content: str, correlation_id: str) -> ActOutput:

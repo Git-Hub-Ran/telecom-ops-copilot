@@ -304,6 +304,37 @@ class TestRespondStateMetadata:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# TestRespondStateBuildAgentPrompt
+# ---------------------------------------------------------------------------
+
+
+class TestRespondStateBuildAgentPrompt:
+    """Tests for _build_agent_prompt content."""
+
+    def test_tool_results_json_included_in_prompt(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """When act_output.tool_results_json is set, the prompt contains the data block."""
+        payload = '{"billing_info": {"total": 42.50}}'
+        act_out = ActOutput(
+            resolution_status="resolved",
+            tools_called=[],
+            kb_citations=[],
+            error_details=None,
+            tool_results_json=payload,
+        )
+        context = StateContext(
+            session_state=session,
+            customer_message="What is my bill?",
+            routing_decision=RoutingDecision.BILLING_PATH,
+            act_output=act_out,
+        )
+        prompt = state._build_agent_prompt(context)
+        assert "Tool result data (use this to answer the customer):" in prompt
+        assert payload in prompt
+
+
 class TestRespondStateMutationContract:
     """Tests for pure-function (no mutation) contract."""
 

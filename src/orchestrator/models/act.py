@@ -118,3 +118,7 @@ class ActOutput(BaseModel):
         default=None,
         description="Error explanation if resolution_status=unresolved"
     )
+    tool_results_json: Optional[str] = Field(
+        default=None,
+        description="JSON-serialized tool result payload for grounding the respond agent"
+    )

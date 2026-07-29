@@ -152,6 +152,9 @@ class RespondState(BaseState[StateContext, RespondOutput]):
             lines.append(f"Resolution status: {act_output.resolution_status}")
             if act_output.error_details:
                 lines.append(f"Error details: {act_output.error_details}")
+            if act_output.tool_results_json:
+                lines.append("Tool result data (use this to answer the customer):")
+                lines.append(act_output.tool_results_json)
             if act_output.kb_citations:
                 lines.append("KB citations available:")
                 for citation in act_output.kb_citations:
