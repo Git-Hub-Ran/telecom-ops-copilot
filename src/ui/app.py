@@ -70,6 +70,9 @@ def _init_session() -> None:
     if "current_state" not in st.session_state:
         st.session_state["current_state"] = "idle"
 
+    if "welcome_shown" not in st.session_state:
+        st.session_state["welcome_shown"] = False
+
 
 def _render_history() -> None:
     """Render conversation_history from the stored orchestrator_state dict.
@@ -152,6 +155,11 @@ def main() -> None:
 
     _init_session()
     _render_history()
+
+    if not st.session_state["welcome_shown"]:
+        with st.chat_message("assistant"):
+            st.markdown("Hello! I am TelSano's support assistant. How can I help you today?")
+        st.session_state["welcome_shown"] = True
 
     if user_message := st.chat_input("Type your message..."):
         machine = get_state_machine()

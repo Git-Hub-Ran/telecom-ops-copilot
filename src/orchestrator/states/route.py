@@ -18,9 +18,9 @@ class RouteState(BaseState[StateContext, RoutingDecision]):
 
     RouteState maps ClassifyOutput to RoutingDecision based on priority rules:
     1. Off-topic queries are refused (highest priority)
-    2. Low confidence triggers clarification
-    3. Explicit escalation intent skips to escalation
-    4. Unknown intent escalates
+    2. Explicit escalation intent skips to escalation
+    3. Unknown intent asks for clarification
+    4. Low confidence triggers clarification
     5. Known intents map to their corresponding paths
 
     This state has no LLM dependency - all decisions are made using if/else logic
@@ -28,15 +28,17 @@ class RouteState(BaseState[StateContext, RoutingDecision]):
 
     Priority order ensures correct behavior when multiple conditions are true:
     - off_topic=True always wins (even if confidence is also low)
-    - confidence < 0.6 beats intent routing (ambiguous queries need clarification)
-    - intent="escalate" or "unknown" skip to escalation before path routing
+    - intent="escalate" routes to escalation before the confidence gate
+    - intent="unknown" routes to clarification; genuine injections are labelled
+      "escalate" by the classifier, and off-topic content is caught by Priority 1
+    - confidence < 0.6 beats intent routing for known intents
 
     Routing Decision Table:
     | Condition                  | Decision                    |
     |----------------------------|-----------------------------|
     | off_topic=True             | REFUSE_OFF_TOPIC            |
     | intent="escalate"          | SKIP_TO_ESCALATE            |
-    | intent="unknown"           | SKIP_TO_ESCALATE            |
+    | intent="unknown"           | ASK_CLARIFYING_QUESTION     |
     | confidence < 0.6           | ASK_CLARIFYING_QUESTION     |
     | intent="billing"           | BILLING_PATH                |
     | intent="technical"         | TECHNICAL_PATH              |
@@ -78,22 +80,24 @@ class RouteState(BaseState[StateContext, RoutingDecision]):
         if classify_output.off_topic:
             return RoutingDecision.REFUSE_OFF_TOPIC
 
-        # Priority 2: Escalate on explicit escalation intent or unknown intent.
-        # Unknown intent always escalates regardless of confidence — low-confidence
-        # unknown means the classifier could not interpret the input at all, which
-        # warrants a human. This check must come before the confidence gate so that
-        # unknown+low_confidence reaches SKIP_TO_ESCALATE, not ASK_CLARIFYING_QUESTION.
-        if classify_output.intent in ("escalate", "unknown"):
+        # Priority 2: Escalate on explicit escalation intent.
+        if classify_output.intent == "escalate":
             return RoutingDecision.SKIP_TO_ESCALATE
 
-        # Priority 3: Ask for clarification on low confidence (known intents only).
+        # Priority 3: Ask for clarification on unknown intent.
+        # Unknown means the classifier could not determine what the customer wants.
+        # Genuine injection attempts are labelled "escalate" by the classifier;
+        # off-topic content is already caught by Priority 1.
+        if classify_output.intent == "unknown":
+            return RoutingDecision.ASK_CLARIFYING_QUESTION
+
+        # Priority 4: Ask for clarification on low confidence (known intents only).
         # At this point intent is one of {billing, technical, account, info}.
-        # For these, low confidence means the query is ambiguous and needs clarification.
         threshold = get_config().CLASSIFICATION_CONFIDENCE_THRESHOLD
         if classify_output.confidence < threshold:
             return RoutingDecision.ASK_CLARIFYING_QUESTION
 
-        # Priority 4-7: Map known intents to their paths
+        # Priority 5-8: Map known intents to their paths
         # At this point: off_topic=False, intent not escalate/unknown, confidence >= threshold
         intent_to_path = {
             "billing": RoutingDecision.BILLING_PATH,
