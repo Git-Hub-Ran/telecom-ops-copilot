@@ -24,7 +24,7 @@ import streamlit as st
 
 from src.config import get_config
 from src.orchestrator.agents.factory import AgentFactory
-from src.orchestrator.models.session import SessionState
+from src.orchestrator.models.session import ConversationTurn, SessionState
 from src.orchestrator.state_machine import StateMachine
 
 
@@ -55,10 +55,15 @@ def _init_session() -> None:
     """
     if "orchestrator_state" not in st.session_state:
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        welcome = ConversationTurn(
+            role="agent",
+            content="Hello! I am TelSano's support assistant. How can I help you today?",
+            timestamp=now,
+        )
         session = SessionState(
             session_id=str(uuid4()),
             correlation_id=str(uuid4()),
-            conversation_history=[],
+            conversation_history=[welcome],
             started_at=now,
             last_updated=now,
         )
@@ -69,9 +74,6 @@ def _init_session() -> None:
 
     if "current_state" not in st.session_state:
         st.session_state["current_state"] = "idle"
-
-    if "welcome_shown" not in st.session_state:
-        st.session_state["welcome_shown"] = False
 
 
 def _render_history() -> None:
@@ -155,11 +157,6 @@ def main() -> None:
 
     _init_session()
     _render_history()
-
-    if not st.session_state["welcome_shown"]:
-        with st.chat_message("assistant"):
-            st.markdown("Hello! I am TelSano's support assistant. How can I help you today?")
-        st.session_state["welcome_shown"] = True
 
     if user_message := st.chat_input("Type your message..."):
         machine = get_state_machine()
