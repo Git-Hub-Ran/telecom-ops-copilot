@@ -384,3 +384,60 @@ class TestStateMachineReturnType:
 
         assert not hasattr(result, "classify_output")
         assert not hasattr(result, "routing_decision")
+
+
+# ---------------------------------------------------------------------------
+# TestStateMachineAccountIdExtraction
+# ---------------------------------------------------------------------------
+
+
+class TestStateMachineAccountIdExtraction:
+    """Tests for account ID extraction from customer messages."""
+
+    @pytest.mark.asyncio
+    async def test_account_id_extracted_from_message(
+        self, machine: StateMachine
+    ) -> None:
+        """ACC-XXXXX in message is stored in session.account_id when it is None."""
+        session = SessionState(
+            session_id="SESS-EXT-001",
+            correlation_id="corr-ext-001",
+            account_id=None,
+            conversation_history=[],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("My account is ACC-10001 and I have a billing question.", session)
+
+        assert session.account_id == "ACC-10001"
+
+    @pytest.mark.asyncio
+    async def test_account_id_not_overwritten(
+        self, machine: StateMachine
+    ) -> None:
+        """Existing session.account_id is not replaced when message contains a different ID."""
+        session = SessionState(
+            session_id="SESS-EXT-002",
+            correlation_id="corr-ext-002",
+            account_id="ACC-10001",
+            conversation_history=[],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("Can you check account ACC-10002?", session)
+
+        assert session.account_id == "ACC-10001"

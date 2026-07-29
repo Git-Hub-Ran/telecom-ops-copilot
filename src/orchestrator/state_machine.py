@@ -15,6 +15,7 @@ Per FR-055, conversation_history is limited to the last 10 turns (rolling
 window enforced after RespondState returns).
 """
 
+import re
 import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -133,6 +134,10 @@ class StateMachine:
             session_state=session,
             customer_message=message,
         )
+
+        match = re.search(r'\bACC-\d{5}\b', message, re.IGNORECASE)
+        if match and session.account_id is None:
+            session.account_id = match.group(0).upper()
 
         # --- ClassifyState ---
         t0 = time.monotonic()
