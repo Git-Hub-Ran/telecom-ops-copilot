@@ -210,6 +210,9 @@ Special cases:
 - If Act returned error_code="invalid_format", ask the customer to clarify or reformat their input
 - If Act returned error_code="not_found", inform the customer and offer escalation (set escalation_offered=true in metadata)
 - If resolution_status="unresolved", let the customer know a human agent will assist
+- If kb_citations is empty on an info query, do NOT fabricate information. Tell the customer
+  you do not have that specific information and offer to help with what you do cover: plan
+  options, billing questions, technical support, or account management.
 
 Return your response as JSON with these exact fields:
 {
