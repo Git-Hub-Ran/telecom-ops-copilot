@@ -10,6 +10,7 @@ Per FR-048, each tool attempt is logged as a tool_call event.
 """
 
 import asyncio
+import copy
 import json
 from datetime import datetime, timezone
 from time import monotonic
@@ -42,6 +43,30 @@ _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
     RoutingDecision.ASK_CLARIFYING_QUESTION,
     RoutingDecision.REFUSE_OFF_TOPIC,
 })
+
+_BILL_MONETARY_FIELDS: frozenset[str] = frozenset({"subtotal", "discounts", "taxes", "total"})
+
+
+def _format_bill_for_display(result_dict: dict) -> dict:
+    """Format monetary float fields in a GetBillingInfoResult model_dump() as currency strings.
+
+    Converts raw floats (e.g. 22.0, -5.0) to "$X.XX" / "-$X.XX" strings so the
+    respond agent receives pre-formatted currency rather than bare numbers.
+    """
+    result = copy.deepcopy(result_dict)
+    billing_info = result.get("billing_info")
+    if not billing_info:
+        return result
+    for bill in billing_info.get("bills", []):
+        for field in _BILL_MONETARY_FIELDS:
+            if field in bill and isinstance(bill[field], (int, float)):
+                val = bill[field]
+                bill[field] = f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
+        for item in bill.get("line_items", []):
+            if "amount" in item and isinstance(item["amount"], (int, float)):
+                val = item["amount"]
+                item["amount"] = f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
+    return result
 
 
 def _now_iso() -> str:
@@ -198,7 +223,8 @@ class ActState(BaseState[StateContext, ActOutput]):
             months=3,
         )
         tool_results_json = (
-            json.dumps(result.model_dump(), default=str) if record.success and result is not None else None
+            json.dumps(_format_bill_for_display(result.model_dump()), default=str)
+            if record.success and result is not None else None
         )
         return ActOutput(
             resolution_status=_status_from_record(record),

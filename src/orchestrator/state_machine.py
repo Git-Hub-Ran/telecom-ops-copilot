@@ -137,7 +137,9 @@ class StateMachine:
 
         match = re.search(r'\bACC-\d{5}\b', message, re.IGNORECASE)
         if match and session.account_id is None:
-            session.account_id = match.group(0).upper()
+            remainder = message[:match.start()] + message[match.end():]
+            if len(message.strip()) > 15 and remainder.strip():
+                session.account_id = match.group(0).upper()
 
         # --- ClassifyState ---
         t0 = time.monotonic()
