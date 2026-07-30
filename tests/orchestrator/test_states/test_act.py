@@ -14,7 +14,7 @@ from src.orchestrator.models import (
     SessionState,
     StateContext,
 )
-from src.orchestrator.states.act import ActState
+from src.orchestrator.states.act import ActState, _billing_prepared_response
 from src.tools.billing import GetBillingInfoResult
 from src.tools.customer import GetCustomerAccountResult
 from src.tools.diagnostic import RunSpeedDiagnosticResult
@@ -530,3 +530,29 @@ class TestActStateContextHandling:
         assert result.resolution_status == "unresolved"
         assert result.error_details == "agent unavailable"
         assert result.kb_citations == []
+
+
+# ---------------------------------------------------------------------------
+# TestBillingPreparedResponse
+# ---------------------------------------------------------------------------
+
+
+class TestBillingPreparedResponse:
+    """Tests for the _billing_prepared_response helper."""
+
+    def test_happy_path_contains_formatted_amounts_and_dates(self) -> None:
+        """Happy path: returned string contains pre-formatted currency values and dates."""
+        result = _billing_ok()
+        summary = _billing_prepared_response(result)
+        assert summary is not None
+        assert "$22.00" in summary
+        assert "$25.00" in summary
+        assert "-$5.00" in summary
+        assert "$2.00" in summary
+        assert "2026-04-01" in summary
+        assert "2026-04-30" in summary
+
+    def test_returns_none_when_success_false(self) -> None:
+        """Returns None when the billing result indicates failure."""
+        result = _error_billing("not_found")
+        assert _billing_prepared_response(result) is None

@@ -148,6 +148,11 @@ class RespondState(BaseState[StateContext, RespondOutput]):
             lines.append(f"Routing decision: {decision.value}")
 
         act_output = context.act_output
+        if act_output is not None and act_output.prepared_response:
+            lines.append(
+                "A pre-formatted response has been prepared. Use EXACTLY this text as your "
+                f"message field, word for word, with no changes: {act_output.prepared_response}"
+            )
         if act_output is not None:
             lines.append(f"Resolution status: {act_output.resolution_status}")
             if act_output.error_details:

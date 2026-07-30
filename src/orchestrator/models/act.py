@@ -126,3 +126,7 @@ class ActOutput(BaseModel):
         default=None,
         description="JSON-serialized tool result payload for grounding the respond agent"
     )
+    prepared_response: Optional[str] = Field(
+        default=None,
+        description="Pre-formatted customer-facing response, bypassing agent composition"
+    )

@@ -43,6 +43,29 @@ _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
     RoutingDecision.REFUSE_OFF_TOPIC,
 })
 
+def _billing_prepared_response(result: GetBillingInfoResult) -> str | None:
+    """Build a complete customer-facing billing sentence with pre-formatted currency.
+
+    Returns a ready-made response string so the respond agent copies it verbatim
+    rather than reformatting numeric values.
+    """
+    if not result.success or result.billing_info is None or not result.billing_info.bills:
+        return None
+    bill = result.billing_info.bills[0]
+
+    def _fmt(val: float) -> str:
+        return f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
+
+    return (
+        f"Your latest bill covers {bill.billing_period_start} to {bill.billing_period_end}. "
+        f"Total: {_fmt(bill.total)}. "
+        f"This includes a subtotal of {_fmt(bill.subtotal)}, "
+        f"discounts of {_fmt(bill.discounts)}, "
+        f"and taxes of {_fmt(bill.taxes)}. "
+        f"Due date: {bill.due_date}. Status: {bill.status}."
+    )
+
+
 def _billing_summary(result: GetBillingInfoResult) -> str | None:
     """Build a human-readable billing summary string for the respond agent.
 
@@ -217,13 +240,16 @@ class ActState(BaseState[StateContext, ActOutput]):
             account_id=account_id,
             months=3,
         )
-        tool_results_json = _billing_summary(result) if record.success and result is not None else None
+        success = record.success and result is not None
+        tool_results_json = _billing_summary(result) if success else None
+        prepared_response = _billing_prepared_response(result) if success else None
         return ActOutput(
             resolution_status=_status_from_record(record),
             tools_called=[record],
             kb_citations=[],
             error_details=record.error_code if not record.success else None,
             tool_results_json=tool_results_json,
+            prepared_response=prepared_response,
         )
 
     async def _run_account(
