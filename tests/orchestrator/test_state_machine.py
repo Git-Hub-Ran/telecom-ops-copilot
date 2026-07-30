@@ -471,3 +471,51 @@ class TestStateMachineAccountIdExtraction:
             await machine.process_turn("ACC-10005", session)
 
         assert session.account_id == "ACC-10005"
+
+    @pytest.mark.asyncio
+    async def test_account_id_overwritten_when_explicit_ownership(
+        self, machine: StateMachine
+    ) -> None:
+        """Existing account_id is overwritten when message contains explicit ownership phrase."""
+        session = SessionState(
+            session_id="SESS-EXT-004",
+            correlation_id="corr-ext-004",
+            account_id="ACC-10001",
+            conversation_history=[],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("my account is ACC-10002, show me my bill", session)
+
+        assert session.account_id == "ACC-10002"
+
+    @pytest.mark.asyncio
+    async def test_account_id_not_overwritten_without_explicit_ownership(
+        self, machine: StateMachine
+    ) -> None:
+        """Existing account_id is not replaced when message lacks an explicit ownership phrase."""
+        session = SessionState(
+            session_id="SESS-EXT-005",
+            correlation_id="corr-ext-005",
+            account_id="ACC-10001",
+            conversation_history=[],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("What is my bill ACC-10002", session)
+
+        assert session.account_id == "ACC-10001"

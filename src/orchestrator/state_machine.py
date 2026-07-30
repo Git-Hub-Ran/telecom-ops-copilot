@@ -136,7 +136,7 @@ class StateMachine:
         )
 
         match = re.search(r'\bACC-\d{5}\b', message, re.IGNORECASE)
-        if match and session.account_id is None:
+        if match:
             last_agent_content = ""
             for turn in reversed(session.conversation_history):
                 if turn.role == "agent":
@@ -146,9 +146,15 @@ class StateMachine:
                 phrase in last_agent_content
                 for phrase in ("account id", "account number", "your account")
             )
+            explicit_ownership = any(
+                phrase in message.lower()
+                for phrase in ("my account is", "account number is", "account id is", "my account number")
+            )
 
             remainder = message[:match.start()] + message[match.end():]
-            if agent_solicited_id or (len(message.strip()) > 15 and remainder.strip()):
+            if explicit_ownership or agent_solicited_id:
+                session.account_id = match.group(0).upper()
+            elif session.account_id is None and len(message.strip()) > 15 and remainder.strip():
                 session.account_id = match.group(0).upper()
 
         # --- ClassifyState ---
