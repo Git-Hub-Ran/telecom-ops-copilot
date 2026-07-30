@@ -270,7 +270,14 @@ class StateMachine:
 
         # --- RespondState ---
         t0 = time.monotonic()
-        respond_output = await self._respond.run(context)
+        if context.act_output and context.act_output.prepared_response:
+            respond_output = RespondOutput(
+                message=context.act_output.prepared_response,
+                citations=[],
+                metadata={"escalation_offered": False},
+            )
+        else:
+            respond_output = await self._respond.run(context)
         respond_ms = int((time.monotonic() - t0) * 1000)
         log_state_transition(
             logger=self._logger,
