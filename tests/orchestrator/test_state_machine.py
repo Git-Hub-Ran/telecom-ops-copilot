@@ -441,3 +441,33 @@ class TestStateMachineAccountIdExtraction:
             await machine.process_turn("Can you check account ACC-10002?", session)
 
         assert session.account_id == "ACC-10001"
+
+    @pytest.mark.asyncio
+    async def test_account_id_extracted_when_agent_solicited_it(
+        self, machine: StateMachine
+    ) -> None:
+        """Bare ACC-XXXXX reply is stored when the last agent turn asked for an account ID."""
+        session = SessionState(
+            session_id="SESS-EXT-003",
+            correlation_id="corr-ext-003",
+            account_id=None,
+            conversation_history=[
+                ConversationTurn(
+                    role="agent",
+                    content="Could you please provide your account ID so I can look that up?",
+                    timestamp="2026-06-24T10:00:00Z",
+                )
+            ],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("ACC-10005", session)
+
+        assert session.account_id == "ACC-10005"

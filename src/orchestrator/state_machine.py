@@ -137,8 +137,15 @@ class StateMachine:
 
         match = re.search(r'\bACC-\d{5}\b', message, re.IGNORECASE)
         if match and session.account_id is None:
+            last_agent_content = ""
+            for turn in reversed(session.conversation_history):
+                if turn.role == "agent":
+                    last_agent_content = turn.content.lower()
+                    break
+            agent_solicited_id = "account id" in last_agent_content
+
             remainder = message[:match.start()] + message[match.end():]
-            if len(message.strip()) > 15 and remainder.strip():
+            if agent_solicited_id or (len(message.strip()) > 15 and remainder.strip()):
                 session.account_id = match.group(0).upper()
 
         # --- ClassifyState ---
