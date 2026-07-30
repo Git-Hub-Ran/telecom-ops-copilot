@@ -146,9 +146,12 @@ class StateMachine:
                 phrase in last_agent_content
                 for phrase in ("account id", "account number", "your account")
             )
-            explicit_ownership = any(
-                phrase in message.lower()
-                for phrase in ("my account is", "account number is", "account id is", "my account number")
+            explicit_ownership = (
+                any(
+                    phrase in message.lower()
+                    for phrase in ("my account is", "account number is", "account id is", "my account number")
+                )
+                or re.search(r'\baccount\s+ACC-\d{5}\b', message, re.IGNORECASE) is not None
             )
 
             remainder = message[:match.start()] + message[match.end():]

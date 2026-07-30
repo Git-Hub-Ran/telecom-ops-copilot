@@ -438,7 +438,7 @@ class TestStateMachineAccountIdExtraction:
             patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
             patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
         ):
-            await machine.process_turn("Can you check account ACC-10002?", session)
+            await machine.process_turn("Can you check billing for ACC-10002?", session)
 
         assert session.account_id == "ACC-10001"
 
@@ -519,3 +519,27 @@ class TestStateMachineAccountIdExtraction:
             await machine.process_turn("What is my bill ACC-10002", session)
 
         assert session.account_id == "ACC-10001"
+
+    @pytest.mark.asyncio
+    async def test_account_id_overwritten_with_account_prefix(
+        self, machine: StateMachine
+    ) -> None:
+        """Existing account_id is overwritten when message has 'Account ACC-XXXXX' pattern."""
+        session = SessionState(
+            session_id="SESS-EXT-006",
+            correlation_id="corr-ext-006",
+            account_id="ACC-10001",
+            conversation_history=[],
+            started_at="2026-06-24T10:00:00Z",
+            last_updated="2026-06-24T10:00:00Z",
+        )
+        with (
+            patch.object(machine._classify, "run", new=AsyncMock(return_value=_classify_out())),
+            patch.object(machine._route, "run", new=AsyncMock(return_value=RoutingDecision.BILLING_PATH)),
+            patch.object(machine._act, "run", new=AsyncMock(return_value=_act_resolved())),
+            patch.object(machine._escalate, "run", new=AsyncMock(return_value=_escalate_ok())),
+            patch.object(machine._respond, "run", new=AsyncMock(return_value=_respond_out())),
+        ):
+            await machine.process_turn("What plan am I on? Account ACC-10002.", session)
+
+        assert session.account_id == "ACC-10002"
