@@ -28,14 +28,17 @@ from src.orchestrator.models.session import ConversationTurn, SessionState
 from src.orchestrator.state_machine import StateMachine
 
 
-@st.cache_resource
-def get_state_machine() -> StateMachine:
+@st.cache_resource(show_spinner=False)
+def get_state_machine(_version: int = 1) -> StateMachine:
     """Create and cache a StateMachine for the lifetime of the server process.
 
     Uses @st.cache_resource so the StateMachine (and the AgentFactory and
     Foundry SDK client it contains) is constructed once and reused across
     all reruns and all user sessions. Safe to share because StateMachine
     holds no per-turn mutable state.
+
+    Increment _version to force cache invalidation when code changes require
+    a fresh StateMachine instance.
 
     Returns:
         StateMachine instance backed by a real AgentFactory and Config.
@@ -159,7 +162,7 @@ def main() -> None:
     _render_history()
 
     if user_message := st.chat_input("Type your message..."):
-        machine = get_state_machine()
+        machine = get_state_machine(_version=2)
         _handle_input(user_message, machine)
 
 
