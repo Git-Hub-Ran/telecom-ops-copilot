@@ -10,7 +10,6 @@ Per FR-048, each tool attempt is logged as a tool_call event.
 """
 
 import asyncio
-import copy
 import json
 from datetime import datetime, timezone
 from time import monotonic
@@ -28,7 +27,7 @@ from src.orchestrator.models import (
 )
 from src.orchestrator.observability.structured import StructuredLogger, log_tool_call
 from src.orchestrator.states.base import BaseState
-from src.tools.billing import get_billing_info
+from src.tools.billing import GetBillingInfoResult, get_billing_info
 from src.tools.customer import get_customer_account
 from src.tools.diagnostic import run_speed_diagnostic
 from src.tools.outage import check_network_outage
@@ -44,29 +43,25 @@ _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
     RoutingDecision.REFUSE_OFF_TOPIC,
 })
 
-_BILL_MONETARY_FIELDS: frozenset[str] = frozenset({"subtotal", "discounts", "taxes", "total"})
+def _billing_summary(result: GetBillingInfoResult) -> str | None:
+    """Build a human-readable billing summary string for the respond agent.
 
-
-def _format_bill_for_display(result_dict: dict) -> dict:
-    """Format monetary float fields in a GetBillingInfoResult model_dump() as currency strings.
-
-    Converts raw floats (e.g. 22.0, -5.0) to "$X.XX" / "-$X.XX" strings so the
-    respond agent receives pre-formatted currency rather than bare numbers.
+    Returns a plain English sentence with pre-formatted currency values so the
+    respond agent can quote them directly without reformatting.
     """
-    result = copy.deepcopy(result_dict)
-    billing_info = result.get("billing_info")
-    if not billing_info:
-        return result
-    for bill in billing_info.get("bills", []):
-        for field in _BILL_MONETARY_FIELDS:
-            if field in bill and isinstance(bill[field], (int, float)):
-                val = bill[field]
-                bill[field] = f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
-        for item in bill.get("line_items", []):
-            if "amount" in item and isinstance(item["amount"], (int, float)):
-                val = item["amount"]
-                item["amount"] = f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
-    return result
+    if not result.success or result.billing_info is None or not result.billing_info.bills:
+        return None
+    bill = result.billing_info.bills[0]
+
+    def _fmt(val: float) -> str:
+        return f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
+
+    return (
+        f"Latest bill: period {bill.billing_period_start} to {bill.billing_period_end}, "
+        f"total {_fmt(bill.total)}, subtotal {_fmt(bill.subtotal)}, "
+        f"discounts {_fmt(bill.discounts)}, taxes {_fmt(bill.taxes)}, "
+        f"due {bill.due_date}, status {bill.status}"
+    )
 
 
 def _now_iso() -> str:
@@ -222,10 +217,7 @@ class ActState(BaseState[StateContext, ActOutput]):
             account_id=account_id,
             months=3,
         )
-        tool_results_json = (
-            json.dumps(_format_bill_for_display(result.model_dump()), default=str)
-            if record.success and result is not None else None
-        )
+        tool_results_json = _billing_summary(result) if record.success and result is not None else None
         return ActOutput(
             resolution_status=_status_from_record(record),
             tools_called=[record],

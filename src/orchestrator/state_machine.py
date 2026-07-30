@@ -142,7 +142,10 @@ class StateMachine:
                 if turn.role == "agent":
                     last_agent_content = turn.content.lower()
                     break
-            agent_solicited_id = "account id" in last_agent_content
+            agent_solicited_id = any(
+                phrase in last_agent_content
+                for phrase in ("account id", "account number", "your account")
+            )
 
             remainder = message[:match.start()] + message[match.end():]
             if agent_solicited_id or (len(message.strip()) > 15 and remainder.strip()):

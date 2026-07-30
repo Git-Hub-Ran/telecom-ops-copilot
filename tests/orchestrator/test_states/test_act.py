@@ -76,15 +76,23 @@ def _make_context(session: SessionState, decision: RoutingDecision) -> StateCont
 
 
 def _billing_ok() -> MagicMock:
-    """Return a mock GetBillingInfoResult for a successful billing lookup.
-
-    Uses MagicMock instead of the Pydantic type so that the nested
-    BillingInfo sub-model does not need to be constructed in tests.
-    """
+    """Return a mock GetBillingInfoResult for a successful billing lookup."""
+    bill = MagicMock()
+    bill.billing_period_start = "2026-04-01"
+    bill.billing_period_end = "2026-04-30"
+    bill.total = 22.00
+    bill.subtotal = 25.00
+    bill.discounts = -5.00
+    bill.taxes = 2.00
+    bill.due_date = "2026-05-15"
+    bill.status = "paid"
+    billing_info = MagicMock()
+    billing_info.bills = [bill]
     mock = MagicMock()
     mock.success = True
     mock.error_code = None
     mock.error_message = None
+    mock.billing_info = billing_info
     return mock
 
 
