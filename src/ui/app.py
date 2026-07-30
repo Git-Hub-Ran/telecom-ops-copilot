@@ -93,7 +93,8 @@ def _render_history() -> None:
     for turn in history:
         role = "user" if turn["role"] == "customer" else "assistant"
         with st.chat_message(role):
-            st.write(turn["content"])
+            content = turn["content"].replace("$", r"\$") if turn["role"] == "agent" else turn["content"]
+            st.write(content)
 
 
 def _handle_input(user_message: str, machine: StateMachine) -> None:
@@ -134,7 +135,7 @@ def _handle_input(user_message: str, machine: StateMachine) -> None:
     st.session_state["current_state"] = "done"
 
     with st.chat_message("assistant"):
-        st.write(result.message)
+        st.write(result.message.replace("$", r"\$"))
 
         if result.citations:
             with st.expander("Sources"):
