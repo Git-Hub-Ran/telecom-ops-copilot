@@ -20,6 +20,12 @@ follow from an intent misclassification routing the query to the wrong path.
 
 ## Known failure categories
 
+Note: the boundary rule examples added to CLASSIFIER_SYSTEM_PROMPT during Phase 2.11
+optimization included 6 verbatim golden set queries. These have been replaced with
+uncontaminated paraphrases in this commit. The 86% baseline was computed against the
+contaminated prompt; a re-run against the current prompt may produce slightly different
+results.
+
 ### Injection attempts classified as escalate (ADV-001, ADV-002, ADV-003, ADV-004)
 
 Injection attempts are classified as `intent="escalate"` by the classifier and
