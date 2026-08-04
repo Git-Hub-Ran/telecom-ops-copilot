@@ -1,6 +1,6 @@
 # TelSano Customer Service Copilot
 
-[![Tests](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml/badge.svg?branch=Dev)](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml)
+[![Tests](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml/badge.svg?branch=Main)](https://github.com/Git-Hub-Ran/telecom-ops-copilot/actions/workflows/tests.yml)
 
 TelSano Copilot is a customer service AI agent for a US telecom provider. It handles
 inbound customer queries across four domains (billing, account management, technical
@@ -9,7 +9,7 @@ Azure AI Foundry agents. Routing, tool execution, escalation, and response gener
 are fully automated; a Streamlit chat interface exposes the pipeline for direct
 customer interaction.
 
-The project demonstrates a production-ready pattern for multi-agent orchestration:
+The project demonstrates a production-ready pattern for single-orchestrator pipeline:
 strict separation between deterministic routing (pure Python) and model-dependent work
 (Foundry agents), structured JSON logging throughout, and a 100-query golden set eval
 with measurable pass/fail criteria.
@@ -78,7 +78,7 @@ prompt in `src/orchestrator/agents/prompts.py`, delete the corresponding agent i
 Azure Foundry portal so it is recreated with the updated instructions on the next run.
 Agent names: `classifier-agent`, `act-agent`, `escalate-agent`, `respond-agent`.
 
-**Tests:** No Azure credentials required. All 305 tests use mocks.
+**Tests:** No Azure credentials required. All 330 tests use mocks.
 
 ```bash
 pytest tests/
@@ -146,7 +146,7 @@ src/
   ui/
     app.py                     Streamlit chat interface
 
-tests/                         305 unit tests, no Azure dependency
+tests/                         330 unit tests, no Azure dependency
 eval/
   golden_set.csv               100-query evaluation set
   BASELINE_NOTES.md            Eval scores and failure analysis
@@ -154,9 +154,12 @@ mock-data/                     JSON fixture files for tool functions
 notebooks/
   03-evaluation.ipynb          End-to-end eval runner
 docs/
+  ARCHITECTURE.md
   BUSINESS_CASE.md
+  DEPLOYMENT.md
   ESCALATION_SCHEMA.md
   EVAL.md
   KB_NOTES.md
   PLAN.md
+  TROUBLESHOOTING.md
 ```

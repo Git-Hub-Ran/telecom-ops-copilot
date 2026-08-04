@@ -4,16 +4,17 @@ This document describes the synthetic knowledge base used by the Telecom Operati
 
 ## Contents
 
-The KB is a flat collection of 16 markdown documents, organized in three sub-folders:
+The KB is a flat collection of 17 markdown documents, organized in four sub-folders:
 
 ```
 kb/
+├── about/             (1 document)
 ├── plans/             (6 documents, ~3.2k words)
 ├── policies/          (5 documents, ~3.5k words)
 └── troubleshooting/   (5 documents, ~5.3k words)
 ```
 
-Total: about 12,000 words across 16 documents.
+Total: about 12,000 words across 17 documents.
 
 ## What each folder covers
 
@@ -66,7 +67,7 @@ The consistent shape helps with:
 
 ## Generation method
 
-The 16 documents were generated through an LLM-assisted process:
+The 17 documents were generated through an LLM-assisted process:
 
 1. Hand-design of the company's plan structure (5 plans + 1 bundle doc), with prices and feature sets chosen to mirror real US telecom market segmentation (entry / mid-tier / unlimited / standard home internet / fiber)
 2. LLM generation (Claude Opus 4.7) of each document from a structured prompt: doc_type, topic, target sections, cross-references to other docs in the KB

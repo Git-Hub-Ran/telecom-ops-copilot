@@ -81,8 +81,8 @@ store. For `SKIP_TO_ESCALATE` and `REFUSE_OFF_TOPIC`, ActState is bypassed.
 **Tools available:**
 - `get_billing_info(account_id, months)`: retrieves billing history via
   the configured DataSource backend
-- `get_account_info(account_id)`: retrieves account details from mock data
-- `run_diagnostic(account_id)`: returns diagnostic results from mock data
+- `get_customer_account(account_id)`: retrieves account details from mock data
+- `run_speed_diagnostic(account_id)`: returns diagnostic results from mock data
 - `check_network_outage(zip_code)`: checks for active outages by zip code
 - `create_escalation_ticket(...)`: creates a structured handoff ticket
 
@@ -263,8 +263,8 @@ maintained within a single Streamlit session but is not persisted. A
 returning customer who starts a new session has no continuity with prior
 interactions.
 
-**No real customer database.** Account data (`get_account_info`), diagnostic
-results (`run_diagnostic`), and outage data (`check_network_outage`) all read
+**No real customer database.** Account data (`get_customer_account`), diagnostic
+results (`run_speed_diagnostic`), and outage data (`check_network_outage`) all read
 from JSON fixture files in `mock-data/`. Billing data can optionally use a
 local SQLite database seeded from the same fixtures. None of these connect to
 a production system.

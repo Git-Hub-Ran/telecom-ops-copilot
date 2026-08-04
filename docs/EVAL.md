@@ -14,7 +14,7 @@ Four metrics, each scored on every test query in the golden set:
 
 ### 1. Intent classification accuracy
 
-The Classifier agent outputs one of: `info`, `account`, `billing`, `technical`, `escalate`.
+The Classifier agent outputs one of: `info`, `account`, `billing`, `technical`, `escalate`, `unknown`.
 
 - **Score**: 1 if exact match to ground truth, 0 otherwise
 - **Aggregation**: percentage of queries where the classified intent matches
@@ -71,7 +71,7 @@ The full set lives in `eval/golden_set.csv`. Each row has:
 | `query_id` | Unique identifier |
 | `query` | Natural language customer message |
 | `customer_account_id` | If applicable (null for info-only queries) |
-| `expected_intent` | One of the 5 categories |
+| `expected_intent` | One of the 6 categories |
 | `expected_tools` | JSON list of tools that should be called (in order) |
 | `expected_escalation` | Boolean |
 | `expected_answer_summary` | Plain-English description of the right answer |
@@ -176,7 +176,7 @@ The full set lives in `eval/golden_set.csv`. Each row has:
 
 ## How to run the evaluation
 
-A Colab notebook at `notebooks/02-evaluation.ipynb` does the following:
+A Colab notebook at `notebooks/03-evaluation.ipynb` does the following:
 
 1. Load `eval/golden_set.csv`
 2. For each query, run the full agent pipeline (orchestrator + Foundry agents + tools)
