@@ -124,6 +124,8 @@ regressions on boundary cases. Injection-attempt queries are correctly deflected
 the routing layer (they escalate to a human agent regardless of the intent label), so
 the metric gap does not represent a functional failure for those cases.
 
+**No identity verification:** account IDs are accepted from customer messages without authentication.
+
 ## Project structure
 
 ```

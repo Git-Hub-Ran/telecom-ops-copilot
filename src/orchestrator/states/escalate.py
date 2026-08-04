@@ -352,7 +352,7 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
                 "account_id": session.account_id,
                 "phone_contact": None,
                 "name_on_file": None,
-                "verified": session.account_id is not None,
+                "verified": False,
             },
             "session": {
                 "session_id": session.session_id,

@@ -271,6 +271,12 @@ replace this with a non-interactive credential (Managed Identity, client
 secret, or workload identity federation) and would add customer-facing
 authentication for the Streamlit interface.
 
+**No identity verification.** Account IDs are extracted from customer
+messages without any authentication check. The escalation ticket hardcodes
+`verified=False` to reflect this honestly. A production deployment would
+verify the customer against name, phone, or an authenticated session before
+setting this field.
+
 **Account ID extraction.** The pipeline extracts account IDs matching the
 pattern ACC-XXXXX from each customer message and stores them in session state.
 Once set, the account ID persists across turns and is not overwritten by
