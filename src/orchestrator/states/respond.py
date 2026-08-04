@@ -171,8 +171,14 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         else:
             lines.append("Resolution status: not attempted")
 
-        escalated = context.escalate_output is not None
+        escalate_output = context.escalate_output
+        escalated = escalate_output is not None
         lines.append(f"Escalation to human agent: {'yes' if escalated else 'no'}")
+        if escalated and escalate_output.success and escalate_output.ticket is not None:
+            lines.append(
+                f"Escalation reference number: {escalate_output.ticket.escalation_id}. "
+                "Include this reference number in your message to the customer."
+            )
 
         lines.append("")
         lines.append(f"Customer message: {context.customer_message}")

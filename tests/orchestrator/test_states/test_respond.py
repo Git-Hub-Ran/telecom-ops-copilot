@@ -24,7 +24,7 @@ from src.orchestrator.states.respond import (
     _FALLBACK_MESSAGE,
     _REFUSE_MESSAGE,
 )
-from src.tools.escalation import CreateEscalationTicketResult
+from src.tools.escalation import CreateEscalationTicketResult, EscalationPayload
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +311,34 @@ class TestRespondStateMetadata:
 
 class TestRespondStateBuildAgentPrompt:
     """Tests for _build_agent_prompt content."""
+
+    def test_escalation_id_included_in_prompt_when_ticket_present(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """When escalate_output has success=True and a ticket, the prompt contains the escalation_id."""
+        ticket = EscalationPayload(
+            escalation_id="ESC-20260513-143023-9999",
+            created_at="2026-05-13T14:30:23Z",
+            reason_code="out_of_scope",
+            priority="medium",
+            customer={"account_id": "ACC-001", "phone_contact": None, "name_on_file": None, "verified": False},
+            session={"session_id": "SESS-001", "started_at": "2026-05-13T14:26:00Z", "channel": "chat"},
+            intent={"primary": "billing", "secondary": [], "confidence": 0.85},
+            summary="Customer requested a human agent.",
+            customer_emotion={"sentiment": "neutral", "indicators": []},
+            transcript=[{"role": "customer", "content": "Help", "at": "2026-05-13T14:26:10Z"}],
+            agent_attempts=["Could not resolve"],
+            suggested_next_action="Assist customer directly",
+        )
+        context = StateContext(
+            session_state=session,
+            customer_message="I want to speak to a human.",
+            routing_decision=RoutingDecision.SKIP_TO_ESCALATE,
+            act_output=None,
+            escalate_output=CreateEscalationTicketResult(success=True, ticket=ticket),
+        )
+        prompt = state._build_agent_prompt(context)
+        assert "ESC-20260513-143023-9999" in prompt
 
     def test_tool_results_json_included_in_prompt(
         self, state: RespondState, session: SessionState

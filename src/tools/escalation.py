@@ -2,12 +2,16 @@
 
 This module provides the create_escalation_ticket function, which creates
 a structured escalation payload for handoff to human support representatives.
+Tickets are persisted to data/escalations.jsonl (one JSON object per line).
 """
 
+import sys
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+from src.config import PROJECT_ROOT
 
 
 class CustomerInfo(BaseModel):
@@ -238,6 +242,20 @@ def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
 
         # Validate and parse the payload using Pydantic
         ticket = EscalationPayload(**payload)
+
+        # Persist ticket to data/escalations.jsonl
+        try:
+            jsonl_path = PROJECT_ROOT / "data" / "escalations.jsonl"
+            jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(jsonl_path, "a", encoding="utf-8") as f:
+                f.write(ticket.model_dump_json() + "\n")
+        except Exception as write_exc:
+            print(
+                f"Warning: failed to persist escalation ticket "
+                f"{ticket.escalation_id}: {write_exc}",
+                file=sys.stderr,
+            )
+
         return CreateEscalationTicketResult(success=True, ticket=ticket)
 
     except ValueError as e:

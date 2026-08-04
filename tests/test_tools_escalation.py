@@ -1,5 +1,7 @@
 """Tests for escalation ticket creation tool."""
 
+import json
+
 import pytest
 
 from src.tools.escalation import create_escalation_ticket
@@ -356,6 +358,19 @@ class TestCreateEscalationTicket:
             assert result.ticket.intent.confidence == 1.5
         else:
             assert result.error_code == "validation_failed"
+
+    def test_successful_ticket_written_to_jsonl(self, tmp_path, monkeypatch):
+        """Successful ticket creation appends a line to escalations.jsonl containing the escalation_id."""
+        monkeypatch.setattr("src.tools.escalation.PROJECT_ROOT", tmp_path)
+
+        payload = self.get_minimal_valid_payload()
+        result = create_escalation_ticket(payload)
+
+        assert result.success is True
+        jsonl_path = tmp_path / "data" / "escalations.jsonl"
+        assert jsonl_path.exists()
+        record = json.loads(jsonl_path.read_text(encoding="utf-8").strip())
+        assert record["escalation_id"] == result.ticket.escalation_id
 
     def test_complete_payload_from_schema_example(self):
         """Test creating ticket with complete payload matching schema example."""
