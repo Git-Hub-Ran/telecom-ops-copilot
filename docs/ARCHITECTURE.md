@@ -44,18 +44,20 @@ classification from routing makes both independently testable.
 **Input:** `ClassifyOutput` from ClassifyState.
 
 **Output:** `RoutingDecision` enum value: one of `BILLING_PATH`,
-`TECHNICAL_PATH`, `ACCOUNT_PATH`, `INFO_PATH`, `SKIP_TO_ESCALATE`, or
-`REFUSE_OFF_TOPIC`.
+`TECHNICAL_PATH`, `ACCOUNT_PATH`, `INFO_PATH`, `SKIP_TO_ESCALATE`,
+`ASK_CLARIFYING_QUESTION`, or `REFUSE_OFF_TOPIC`.
 
 **Technology:** Pure Python. No LLM involved.
 
 **Priority rules (applied in order):**
 1. Off-topic flag set: route to `REFUSE_OFF_TOPIC`.
-2. Intent is `unknown` or `escalate`: route to `SKIP_TO_ESCALATE` before
-   the confidence gate. This ensures prompt injection attempts and
-   uninterpretable queries always reach a human agent.
-3. Confidence below threshold (default 0.6): route to `SKIP_TO_ESCALATE`.
-4. Otherwise: route to the path matching the intent label.
+2. Intent is `escalate`: route to `SKIP_TO_ESCALATE`. This ensures explicit
+   escalation requests and prompt injection attempts (classified as `escalate`
+   by the classifier) always reach a human agent before the confidence gate.
+3. Intent is `unknown`: route to `ASK_CLARIFYING_QUESTION`. Unknown means the
+   classifier could not determine what the customer wants.
+4. Confidence below threshold (default 0.6): route to `ASK_CLARIFYING_QUESTION`.
+5. Otherwise: route to the path matching the intent label.
 
 **Why this state exists as pure Python:** Routing logic is policy, not
 inference. It must be deterministic, auditable, and fast. Making it pure
@@ -192,10 +194,13 @@ call. Third, it is testable: RouteState has exhaustive unit tests covering
 every combination of intent, confidence, and flag values. These tests run
 in milliseconds with no external dependencies.
 
-The most critical routing rule is that `unknown` intent and prompt injection
-attempts always route to `SKIP_TO_ESCALATE` before the confidence gate. It
-cannot be overridden by a confident but wrong classifier. This property would
-not be guaranteed if routing were delegated to an LLM.
+The most critical routing rule is that `escalate` intent routes to
+`SKIP_TO_ESCALATE` before the confidence gate. Prompt injection attempts are
+classified as `intent="escalate"` by the classifier and reach a human agent via
+this path. `unknown` intent routes to `ASK_CLARIFYING_QUESTION`; the injection
+defence relies on the classifier labelling attacks as `escalate`, not on the
+unknown routing path. These properties would not be guaranteed if routing were
+delegated to an LLM.
 
 ---
 

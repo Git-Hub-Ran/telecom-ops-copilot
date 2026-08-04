@@ -20,13 +20,15 @@ follow from an intent misclassification routing the query to the wrong path.
 
 ## Known failure categories
 
-### Injection attempts classified as unknown (ADV-001, ADV-002, ADV-003, ADV-004)
+### Injection attempts classified as escalate (ADV-001, ADV-002, ADV-003, ADV-004)
 
-The classifier correctly returns `intent="unknown"` for prompt injection attempts.
-The golden set expects `intent="escalate"`. Pipeline behaviour is correct: the
-RouteState fix (July 1 2026) ensures `unknown` always routes to `SKIP_TO_ESCALATE`
-before the confidence gate, so these queries reach a human agent. The intent label
-mismatch is an eval metric artefact, not a functional failure.
+Injection attempts are classified as `intent="escalate"` by the classifier and
+route to escalation via the escalate intent path (Priority 2 in RouteState). The
+golden set expects `intent="escalate"`, which matches. These are not eval failures.
+The earlier behaviour (commit b00b036) routed `unknown` to `SKIP_TO_ESCALATE`;
+commit af3cd76 changed `unknown` to route to `ASK_CLARIFYING_QUESTION` instead.
+Injection defence now relies on the classifier labelling attacks as `escalate`,
+not on the unknown routing path.
 
 Outcome-based scoring was considered but rejected to keep intent accuracy and
 escalation recall independent. Both metrics are reported separately.
@@ -89,5 +91,5 @@ deferred to a future phase.
 | ACT_SYSTEM_PROMPT: JSON-only enforcement, INFO_PATH scope | 61ccd3a |
 | Markdown code fence strip before JSON parsing | 5c0b451 |
 | Temporary diagnostic logging removed | 8a02450 |
-| RouteState: unknown intent escalates before confidence gate | b00b036 |
+| RouteState: unknown intent routed to SKIP_TO_ESCALATE (changed to ASK_CLARIFYING_QUESTION in af3cd76) | b00b036 |
 | CLASSIFIER_SYSTEM_PROMPT: boundary rules for info/account/billing | 0c39a12 |

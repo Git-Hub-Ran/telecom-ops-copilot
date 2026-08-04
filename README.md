@@ -22,8 +22,9 @@ Each customer message passes through five states in sequence:
    account, info, escalate, or unknown), confidence score, detected emotion, and
    off-topic flag.
 2. **RouteState** (pure Python, no LLM): maps ClassifyOutput to a RoutingDecision
-   enum value using priority rules. Unknown intent and injection attempts always route
-   to escalation before the confidence gate is evaluated.
+   enum value using priority rules. Unknown intent routes to a clarifying question.
+   Injection attempts are classified as `intent="escalate"` by the classifier and
+   route to escalation directly.
 3. **ActState**: calls Python tool functions directly for billing, account, and
    technical paths; invokes a gpt-4o Foundry agent with file_search for info queries.
 4. **EscalateState** (gpt-4o Foundry agent): assembles and persists a human handoff
@@ -40,9 +41,10 @@ Each customer message passes through five states in sequence:
 - DeviceCodeCredential: interactive auth that works in all environments
 
 RouteState is the only stateless, model-free component. It applies priority rules
-to map ClassifyOutput to a RoutingDecision enum value, ensuring that unknown intent
-and injection attempts always route to escalation before the confidence gate is
-evaluated.
+to map ClassifyOutput to a RoutingDecision enum value. Unknown intent routes to a
+clarifying question. Injection attempts are classified as `intent="escalate"` by the
+classifier and route to escalation directly. The injection defence relies on the
+classifier labelling attacks as `escalate`, not on the unknown routing path.
 
 ## Quick start
 
@@ -96,7 +98,7 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 | Latency p95 | ~20s | <=5s | FAIL (structural, see below) |
 
 Intent accuracy uses exact label matching. The classifier correctly identifies
-injection attempts as unknown intent, which routes to escalation via RouteState.
+injection attempts as `intent="escalate"`, which routes to escalation directly.
 This behaviour is captured separately in escalation recall (92.9% PASS). The
 two metrics are intentionally independent.
 
