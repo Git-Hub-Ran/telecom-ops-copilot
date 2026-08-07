@@ -15,6 +15,16 @@ July 1, 2026. Full 100-query golden set (`eval/golden_set.csv`).
 | Latency p95 | ~20s | <=5s | FAIL |
 | Deflection rate | 92.9% | 30-40% | -- |
 
+Deflection rate note: the denominator is standard queries only (70 queries). A
+query is deflected when the agent handles it without escalation. 92.9% means
+65 of 70 standard queries were handled without escalation. The figure is high
+because info queries (20 of 70) never escalate by design; they are answered
+from KB content rather than routed to a human. The 30-40% target assumes a
+production query mix where escalation-prone intents (technical failures, billing
+disputes) are more prevalent than in this eval set. Status is unmarked because
+the metric is informational for this eval run; the target applies to production
+traffic.
+
 Intent accuracy and tool selection are correlated: most tool selection failures
 follow from an intent misclassification routing the query to the wrong path.
 

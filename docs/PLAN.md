@@ -270,11 +270,11 @@ Foundry file search runs the retrieved content through content safety filters be
 
 ### Golden test set: 100 cases
 
-- 40 percent straightforward
-- 30 percent ambiguous (multiple plausible intents)
-- 15 percent adversarial (prompt injection, off-topic, abusive)
-- 10 percent multi-intent
-- 5 percent edge cases (suspended account, no account ID)
+70 standard queries distributed by intent: 20 info, 15 account, 15 billing,
+15 technical, 5 escalate.
+
+30 adversarial queries distributed by attack type: 5 prompt_injection, 5 off_topic,
+5 ambiguous, 5 multi_intent, 5 abusive, 5 no_context.
 
 ### Lock the eval before optimizing
 
