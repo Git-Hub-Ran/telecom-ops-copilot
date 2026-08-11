@@ -225,3 +225,5 @@ __marimo__/
 
 # Eval output files (run results are local only; not committed to repo)
 eval/results_*.csv
+# Exception: committed baseline result for auditability
+!eval/results_20260807_1312.csv
