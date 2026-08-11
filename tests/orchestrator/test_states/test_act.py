@@ -533,6 +533,19 @@ class TestActStateContextHandling:
         assert result.error_details == "agent unavailable"
         assert result.kb_citations == []
 
+    @pytest.mark.asyncio
+    async def test_info_path_malformed_json_returns_unresolved(
+        self, state: ActState, session: SessionState
+    ) -> None:
+        """INFO_PATH with malformed JSON response returns unresolved ActOutput."""
+        context = _make_context(session, RoutingDecision.INFO_PATH)
+
+        with patch.object(state, "_invoke_agent_for_kb", return_value="not valid json {{{"):
+            result = await state.run(context)
+
+        assert result.resolution_status == "unresolved"
+        assert result.kb_citations == []
+
 
 # ---------------------------------------------------------------------------
 # TestBillingPreparedResponse

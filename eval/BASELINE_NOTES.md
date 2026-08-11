@@ -10,8 +10,8 @@ July 1, 2026. Full 100-query golden set (`eval/golden_set.csv`).
 |---|---|---|---|
 | Intent accuracy | 88% | >=90% | FAIL |
 | Tool selection | 83.1% | >=85% | FAIL |
-| Escalation precision | 91.7% | >=85% | PASS |
-| Escalation recall | 78.6% | >=80% | FAIL |
+| Escalation precision | 91.7% (11/12, small-n) | >=85% | PASS |
+| Escalation recall | 78.6% (11/14, small-n) | >=80% | FAIL |
 | Latency p95 | ~20s | <=5s | FAIL |
 | Deflection rate | 92.9% | 30-40% | -- |
 
