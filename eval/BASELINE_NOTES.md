@@ -9,10 +9,10 @@ July 1, 2026. Full 100-query golden set (`eval/golden_set.csv`).
 | Metric | Score | Target | Status |
 |---|---|---|---|
 | Intent accuracy | 88% | >=90% | FAIL |
-| Tool selection | 83.1% | >=85% | FAIL |
+| Tool selection | 84.0% | >=85% | FAIL |
 | Escalation precision | 91.7% (11/12, small-n) | >=85% | PASS |
 | Escalation recall | 78.6% (11/14, small-n) | >=80% | FAIL |
-| Latency p95 | ~20s | <=5s | FAIL |
+| Latency p95 | ~18s | <=5s | FAIL |
 | Deflection rate | 92.9% | 30-40% | -- |
 
 Deflection rate note: the denominator is standard queries only (70 queries). A
@@ -89,7 +89,7 @@ Tone, hostility, and vagueness that the classifier cannot reliably resolve:
 | Metric | Value |
 |---|---|
 | p50 (median) | ~11s |
-| p95 | ~20s |
+| p95 | ~18s |
 | Queries over 5s | 92 of 100 |
 
 Root cause: the Foundry Agents API polling model requires 4+ HTTP round trips per
