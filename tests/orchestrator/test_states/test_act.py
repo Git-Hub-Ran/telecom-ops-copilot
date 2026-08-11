@@ -14,7 +14,7 @@ from src.orchestrator.models import (
     SessionState,
     StateContext,
 )
-from src.orchestrator.states.act import ActState, _billing_prepared_response
+from src.orchestrator.states.act import ActState, _format_billing_outputs
 from src.tools.billing import GetBillingInfoResult
 from src.tools.customer import GetCustomerAccountResult
 from src.tools.diagnostic import RunSpeedDiagnosticResult
@@ -537,22 +537,24 @@ class TestActStateContextHandling:
 # ---------------------------------------------------------------------------
 
 
-class TestBillingPreparedResponse:
-    """Tests for the _billing_prepared_response helper."""
+class TestFormatBillingOutputs:
+    """Tests for the _format_billing_outputs helper."""
 
-    def test_happy_path_contains_formatted_amounts_and_dates(self) -> None:
-        """Happy path: returned string contains pre-formatted currency values and dates."""
+    def test_happy_path_returns_both_outputs(self) -> None:
+        """Happy path: both summary and prepared strings contain formatted values."""
         result = _billing_ok()
-        summary = _billing_prepared_response(result)
+        summary, prepared = _format_billing_outputs(result)
         assert summary is not None
-        assert "$22.00" in summary
-        assert "$25.00" in summary
-        assert "-$5.00" in summary
-        assert "$2.00" in summary
-        assert "2026-04-01" in summary
-        assert "2026-04-30" in summary
+        assert prepared is not None
+        for s in (summary, prepared):
+            assert "$22.00" in s
+            assert "$25.00" in s
+            assert "-$5.00" in s
+            assert "$2.00" in s
+            assert "2026-04-01" in s
+            assert "2026-04-30" in s
 
-    def test_returns_none_when_success_false(self) -> None:
-        """Returns None when the billing result indicates failure."""
+    def test_returns_none_tuple_when_success_false(self) -> None:
+        """Returns (None, None) when the billing result indicates failure."""
         result = _error_billing("not_found")
-        assert _billing_prepared_response(result) is None
+        assert _format_billing_outputs(result) == (None, None)

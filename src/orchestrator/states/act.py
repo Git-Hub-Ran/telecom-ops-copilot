@@ -44,20 +44,27 @@ _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
     RoutingDecision.REFUSE_OFF_TOPIC,
 })
 
-def _billing_prepared_response(result: GetBillingInfoResult) -> str | None:
-    """Build a complete customer-facing billing sentence with pre-formatted currency.
+def _format_billing_outputs(
+    result: GetBillingInfoResult,
+) -> tuple[str | None, str | None]:
+    """Return (tool_results_json, prepared_response) for a billing result.
 
-    Returns a ready-made response string so the respond agent copies it verbatim
-    rather than reformatting numeric values.
+    Returns (None, None) if result has no bills.
     """
     if not result.success or result.billing_info is None or not result.billing_info.bills:
-        return None
+        return None, None
     bill = result.billing_info.bills[0]
 
     def _fmt(val: float) -> str:
         return f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
 
-    return (
+    summary = (
+        f"Latest bill: period {bill.billing_period_start} to {bill.billing_period_end}, "
+        f"total {_fmt(bill.total)}, subtotal {_fmt(bill.subtotal)}, "
+        f"discounts {_fmt(bill.discounts)}, taxes {_fmt(bill.taxes)}, "
+        f"due {bill.due_date}, status {bill.status}"
+    )
+    prepared = (
         f"Your latest bill covers {bill.billing_period_start} to {bill.billing_period_end}. "
         f"Total: {_fmt(bill.total)}. "
         f"This includes a subtotal of {_fmt(bill.subtotal)}, "
@@ -65,27 +72,7 @@ def _billing_prepared_response(result: GetBillingInfoResult) -> str | None:
         f"and taxes of {_fmt(bill.taxes)}. "
         f"Due date: {bill.due_date}. Status: {bill.status}."
     )
-
-
-def _billing_summary(result: GetBillingInfoResult) -> str | None:
-    """Build a human-readable billing summary string for the respond agent.
-
-    Returns a plain English sentence with pre-formatted currency values so the
-    respond agent can quote them directly without reformatting.
-    """
-    if not result.success or result.billing_info is None or not result.billing_info.bills:
-        return None
-    bill = result.billing_info.bills[0]
-
-    def _fmt(val: float) -> str:
-        return f"-${abs(val):.2f}" if val < 0 else f"${val:.2f}"
-
-    return (
-        f"Latest bill: period {bill.billing_period_start} to {bill.billing_period_end}, "
-        f"total {_fmt(bill.total)}, subtotal {_fmt(bill.subtotal)}, "
-        f"discounts {_fmt(bill.discounts)}, taxes {_fmt(bill.taxes)}, "
-        f"due {bill.due_date}, status {bill.status}"
-    )
+    return summary, prepared
 
 
 def _now_iso() -> str:
@@ -241,9 +228,11 @@ class ActState(BaseState[StateContext, ActOutput]):
             account_id=account_id,
             months=3,
         )
-        success = record.success and result is not None
-        tool_results_json = _billing_summary(result) if success else None
-        prepared_response = _billing_prepared_response(result) if success else None
+        tool_results_json, prepared_response = (
+            _format_billing_outputs(result)
+            if record.success and result is not None
+            else (None, None)
+        )
         return ActOutput(
             resolution_status=_status_from_record(record),
             tools_called=[record],

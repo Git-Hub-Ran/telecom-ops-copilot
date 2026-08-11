@@ -238,14 +238,13 @@ class TestGetBillingInfo:
             assert item.amount < 0
 
     def test_account_with_no_billing_history(self):
-        """Test account ID that exists but has no billing records."""
+        """Test account ID with no billing records returns not_found."""
         result = get_billing_info("ACC-99999")
 
-        assert result.success is True
-        assert result.billing_info is not None
-        assert result.billing_info.account_id == "ACC-99999"
-        assert result.billing_info.total_bills == 0
-        assert len(result.billing_info.bills) == 0
+        assert result.success is False
+        assert result.billing_info is None
+        assert result.error_code == "not_found"
+        assert "No billing history" in result.error_message
 
     def test_malformed_account_id_missing_dash(self):
         """Test that account_id without dash returns format error."""

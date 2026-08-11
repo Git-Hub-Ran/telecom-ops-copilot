@@ -126,7 +126,7 @@ def get_billing_info(account_id: str, months: int = 3) -> GetBillingInfoResult:
 
         Account with no billing history:
             result = get_billing_info("ACC-99999")
-            # Returns: success=True, billing_info.bills=[]
+            # Returns: success=False, error_code="not_found"
     """
     # Validate account_id format
     account_id_pattern = re.compile(r"^ACC-\d{5}$")
@@ -159,6 +159,13 @@ def get_billing_info(account_id: str, months: int = 3) -> GetBillingInfoResult:
 
     # Limit to requested number of months
     limited_bills = account_bills[:months]
+
+    if not account_bills:
+        return GetBillingInfoResult(
+            success=False,
+            error_code="not_found",
+            error_message=f"No billing history found for account {account_id}",
+        )
 
     # Parse into Pydantic models
     try:
