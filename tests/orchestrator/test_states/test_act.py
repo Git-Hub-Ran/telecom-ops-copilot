@@ -15,7 +15,7 @@ from src.orchestrator.models import (
     StateContext,
 )
 from src.orchestrator.states.act import ActState, _format_billing_outputs
-from src.tools.billing import GetBillingInfoResult
+from src.tools.billing import Bill, BillingInfo, GetBillingInfoResult
 from src.tools.customer import GetCustomerAccountResult
 from src.tools.diagnostic import RunSpeedDiagnosticResult
 from src.tools.outage import CheckNetworkOutageResult
@@ -75,25 +75,27 @@ def _make_context(session: SessionState, decision: RoutingDecision) -> StateCont
 # ---------------------------------------------------------------------------
 
 
-def _billing_ok() -> MagicMock:
-    """Return a mock GetBillingInfoResult for a successful billing lookup."""
-    bill = MagicMock()
-    bill.billing_period_start = "2026-04-01"
-    bill.billing_period_end = "2026-04-30"
-    bill.total = 22.00
-    bill.subtotal = 25.00
-    bill.discounts = -5.00
-    bill.taxes = 2.00
-    bill.due_date = "2026-05-15"
-    bill.status = "paid"
-    billing_info = MagicMock()
-    billing_info.bills = [bill]
-    mock = MagicMock()
-    mock.success = True
-    mock.error_code = None
-    mock.error_message = None
-    mock.billing_info = billing_info
-    return mock
+def _billing_ok() -> GetBillingInfoResult:
+    """Return a real GetBillingInfoResult for a successful billing lookup."""
+    bill = Bill(
+        bill_id="BILL-00001-202604",
+        account_id="ACC-001",
+        billing_period_start="2026-04-01",
+        billing_period_end="2026-04-30",
+        issue_date="2026-04-01",
+        due_date="2026-05-15",
+        subtotal=25.00,
+        discounts=-5.00,
+        taxes=2.00,
+        total=22.00,
+        status="paid",
+        paid_date="2026-05-10",
+        line_items=[],
+    )
+    return GetBillingInfoResult(
+        success=True,
+        billing_info=BillingInfo(account_id="ACC-001", bills=[bill], total_bills=1),
+    )
 
 
 def _account_ok(billing_zip: str = "90210") -> MagicMock:
@@ -164,8 +166,8 @@ def _error_diagnostic(error_code: str) -> RunSpeedDiagnosticResult:
 
 _INFO_JSON = json.dumps({
     "kb_citations": [
-        {"doc_id": "kb/policies/01-billing.md", "section": "Late Fees", "relevance": "directly relevant"},
-        {"doc_id": "kb/policies/02-payments.md", "section": "Payment Methods", "relevance": "related"},
+        {"doc_id": "kb/policies/01-billing-cycle.md", "section": "Late Fees", "relevance": "directly relevant"},
+        {"doc_id": "kb/policies/02-late-fees.md", "section": "Payment Methods", "relevance": "related"},
     ]
 })
 
@@ -254,7 +256,7 @@ class TestActStateHappyPaths:
 
         assert result.resolution_status == "resolved"
         assert len(result.kb_citations) == 2
-        assert result.kb_citations[0].doc_id == "kb/policies/01-billing.md"
+        assert result.kb_citations[0].doc_id == "kb/policies/01-billing-cycle.md"
         assert result.kb_citations[0].section == "Late Fees"
         assert result.tools_called == []
 
