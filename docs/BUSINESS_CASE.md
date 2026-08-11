@@ -15,16 +15,15 @@ Translated: a mid-size US telecom (50,000 subscribers, around 5,000 monthly supp
 
 ## Who is the user
 
-The primary user of the Operations Copilot is the **support team at a mid-size US telecom**, not the end customer.
+The direct user of the Operations Copilot is the **end customer** of a mid-size US telecom. The system ships as a customer-facing pilot: customers interact with the Streamlit chat interface directly to get billing summaries, account details, troubleshooting guidance, and general plan information.
 
-This is a deliberate scoping choice:
+Containment is achieved through bounded tooling and escalation, not a human in the loop:
 
-- The agent is a "copilot" for human reps, not a customer-facing chatbot
-- Lower risk: a human is in the loop for any consequential action
-- Easier to measure: existing AHT and deflection metrics give a clean baseline
-- Faster iteration: reps can give structured feedback that a customer would not
+- All tools are read-only against synthetic mock data (no writes, no live account mutations)
+- Unresolvable queries and high-frustration signals route to a human agent via a structured escalation ticket
+- Off-topic and injection attempts are refused or escalated by the classifier and routing layer
 
-The future expansion path is a customer-facing version with stricter safety controls. That is out of scope for this initial release.
+A production deployment would add authentication, real data access, and stricter content controls before exposing this to live customers. That path is documented in [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Target KPIs
 

@@ -308,3 +308,34 @@ respond_complete     -> duration_ms=18432
 
 If any step is missing from this sequence for a given `correlation_id`,
 the pipeline exited early at the last logged step.
+
+---
+
+## Data handling
+
+### What is logged
+
+The structured logger writes the following fields to stdout for every pipeline turn:
+
+| Field | Content |
+|---|---|
+| `correlation_id` | UUID generated per turn, not tied to any persistent customer identifier |
+| `account_id` | The raw account ID parsed from the customer message (e.g. `ACC-10001`) |
+| `intent` | Classified intent label |
+| `event` | Pipeline event name |
+| `agent_response` | Truncated model response text at DEBUG level |
+
+### Why this is acceptable for the current deployment
+
+All account data in this pilot is synthetic mock data. Account IDs (`ACC-10001` through `ACC-10005`) do not correspond to real customers, so logging them in full has no privacy impact.
+
+Escalation tickets are appended to `data/escalations.jsonl`. This file contains the full conversation transcript and the customer account ID. It is excluded from version control via `.gitignore` and should be treated as sensitive on any machine that connects to real customer data.
+
+### What a production deployment would change
+
+Before connecting to real customer data:
+
+- **Hash or truncate `account_id` in logs.** Log `sha256(account_id)[:8]` for correlation without exposing the raw value.
+- **Drop `agent_response` at INFO level.** Full model responses at INFO create large log volumes and may contain PII echoed from tool results. Retain at DEBUG only, with DEBUG disabled in production by default.
+- **Set a retention window.** Configure log storage (Azure Monitor, Splunk, or equivalent) with a 30 to 90 day retention window to match your data retention policy.
+- **Escalation tickets.** Write to a managed store (Cosmos DB, Service Bus) with access controls and field-level encryption on `transcript` and `customer.account_id`, rather than a local file.

@@ -10,6 +10,18 @@
 
 ---
 
+## Platform decision
+
+Azure AI Foundry was chosen over AWS Bedrock AgentCore and Google Vertex AI Agent Engine for three practical reasons:
+
+1. **Existing Azure tenancy.** The project lives in an Azure subscription already in use, avoiding cross-cloud credential and billing complexity.
+2. **file\_search maturity.** Foundry's built-in vector store and file\_search tool required no additional infrastructure for KB retrieval. Bedrock Knowledge Bases and Vertex Search are comparable but would have required separate setup.
+3. **Integrated eval tooling.** Azure AI Foundry provides a built-in prompt evaluation and tracing interface that complements the golden-set eval framework in this project.
+
+The Foundry Agents API does introduce a latency cost from its polling model (4+ HTTP round trips per agent run). Bedrock and Vertex both offer streaming-first agent runtimes that would be better choices if sub-5s p95 latency is a hard requirement. See the latency constraint section in [`eval/BASELINE_NOTES.md`](../eval/BASELINE_NOTES.md).
+
+---
+
 ## 1. Clone and install
 
 ```bash
@@ -196,3 +208,40 @@ RESPOND_MODEL=<replacement-model-deployment-name>
 
 The values must match the deployment names in your Azure OpenAI resource, not
 the base model names. Check the Azure OpenAI portal for available deployments.
+
+---
+
+## 10. Production path
+
+The current setup runs as a local Streamlit app with Device Code auth, which is appropriate for a developer pilot but not for production traffic. A production deployment requires the following changes.
+
+**Container image**
+
+Package the app as a Docker container and deploy to Azure Container Apps or Azure App Service:
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY src/ src/
+COPY mock-data/ mock-data/
+COPY kb/ kb/
+CMD ["streamlit", "run", "src/ui/app.py", "--server.port=8501", "--server.headless=true"]
+```
+
+**Managed Identity instead of Device Code**
+
+Replace `DeviceCodeCredential` with `ManagedIdentityCredential` when running inside Azure. Assign the container's managed identity the `Azure AI Developer` role on the Foundry project. No `.env` secrets for credentials are then required.
+
+**Secret storage**
+
+Store `AZURE_FOUNDRY_PROJECT_ENDPOINT` and `VECTOR_STORE_ID` in Azure Key Vault or as Container App secrets. Do not pass them as plain environment variables in a shared deployment.
+
+**Session state**
+
+Streamlit `st.session_state` is per-process and lost on restart. For production, store `SessionState` in a Redis cache or Azure Table Storage keyed by session token. The `StateMachine` already accepts a plain `SessionState` object; the Streamlit UI layer owns serialization (FR-056), so swapping the backing store requires changes to `src/ui/app.py` only.
+
+**Escalation ticket persistence**
+
+`data/escalations.jsonl` is a local append-only file. In production, write tickets to Azure Cosmos DB or an Azure Service Bus queue so a separate fulfilment service can consume them.

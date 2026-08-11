@@ -142,8 +142,8 @@ most: safety routing (prompt injection, unrecognized intents) must always
 produce the same outcome.
 
 The state machine also makes the system straightforward to test. Each state
-has clearly defined inputs and outputs. RouteState has 100% unit test
-coverage without a single LLM mock. ActState tool calls are pure Python
+has clearly defined inputs and outputs. RouteState is comprehensively unit
+tested without a single LLM mock. ActState tool calls are pure Python
 functions tested against fixture data.
 
 **When a multi-agent architecture would be the right choice:**

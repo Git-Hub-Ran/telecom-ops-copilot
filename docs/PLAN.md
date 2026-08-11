@@ -11,11 +11,11 @@ An AI agent that handles customer service inquiries for a fictional US telecom c
 | **Domain** | Telecom customer service |
 | **Company** | TelSano (fictional) |
 | **Language** | English only |
-| **Frontend** | Streamlit on Hugging Face Spaces |
+| **Frontend** | Streamlit on Hugging Face Spaces (planned; shipped as localhost Streamlit, production container deployment documented in docs/DEPLOYMENT.md) |
 | **Agent runtime** | Azure AI Foundry Agent Service |
-| **Orchestration** | Microsoft Agent Framework with explicit state machine |
+| **Orchestration** | Microsoft Agent Framework with explicit state machine (planned; shipped as custom Python state machine, see docs/ARCHITECTURE.md) |
 | **KB / RAG** | Foundry built-in file search |
-| **Tool implementations** | Azure Functions (5 tools) |
+| **Tool implementations** | Azure Functions (5 tools) (planned; shipped as local Python functions) |
 | **Memory** | Session based via Streamlit session_state |
 
 ---

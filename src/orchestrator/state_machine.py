@@ -37,6 +37,7 @@ from src.orchestrator.states.classify import ClassifyState
 from src.orchestrator.states.escalate import EscalateState
 from src.orchestrator.states.respond import RespondState
 from src.orchestrator.states.respond import _FALLBACK_MESSAGE
+from src.config import get_config
 from src.orchestrator.states.route import RouteState
 
 _ACT_DECISIONS: frozenset[RoutingDecision] = frozenset({
@@ -305,7 +306,7 @@ class StateMachine:
                 ConversationTurn(role="customer", content=message, timestamp=now),
                 ConversationTurn(role="agent", content=respond_output.message, timestamp=now),
             ]
-        )[-10:]
+        )[-(get_config().MAX_CONVERSATION_TURNS):]
         session.last_updated = now
         session.correlation_id = str(uuid4())
 

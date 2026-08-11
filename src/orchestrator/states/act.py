@@ -26,6 +26,7 @@ from src.orchestrator.models import (
     ToolCallRecord,
 )
 from src.orchestrator.observability.structured import StructuredLogger, log_tool_call
+from src.config import get_config
 from src.orchestrator.states.base import BaseState
 from src.tools.billing import GetBillingInfoResult, get_billing_info
 from src.tools.customer import get_customer_account
@@ -546,7 +547,7 @@ class ActState(BaseState[StateContext, ActOutput]):
             )
 
         # Transient failure: one retry after 250 ms backoff
-        await asyncio.sleep(0.25)
+        await asyncio.sleep(get_config().RETRY_BACKOFF_MS / 1000)
         result2, success2, error_code2, summary2, duration_ms2 = await _attempt()
 
         log_tool_call(
