@@ -84,6 +84,20 @@ Agent names: `classifier-agent`, `act-agent`, `escalate-agent`, `respond-agent`.
 pytest tests/
 ```
 
+## Screenshots
+
+**Welcome screen**
+![Welcome](docs/screenshots/welcome.png)
+
+**KB-grounded answer with citations**
+![KB answer](docs/screenshots/info_kb.png)
+
+**Billing query with formatted amounts**
+![Billing](docs/screenshots/billing.png)
+
+**Escalation with ticket reference**
+![Escalation](docs/screenshots/escalation.png)
+
 ## Eval results
 
 Baseline evaluation against a 100-query golden set (standard and adversarial queries).
