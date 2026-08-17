@@ -20,3 +20,23 @@ shell commands, and other important information, read the current plan:
   "Day N", "revised", or "NEW" in any file or commit message.
 - Always run git status before starting new work to verify a
   clean working tree.
+
+## Writing code
+
+Work down this ladder before writing anything new. Stop at the first
+step that answers the need.
+
+1. Does this need to exist at all? If not, say so and stop.
+2. Is it already in this codebase? Reuse it.
+3. Does the standard library cover it? Use that.
+4. Is there a native platform feature for it? Use that.
+5. Does an already installed dependency cover it? Use that.
+6. Can it be one line? Write the one line.
+7. Only then write new code, and write the minimum that works.
+
+- Never add features, options, config, or abstraction layers that
+  were not requested.
+- Do not add error handling, logging, or defensive checks beyond
+  what the surrounding code already does.
+- This ladder never applies to validation, security, or
+  accessibility. Those are written in full.
