@@ -105,16 +105,19 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 86% | >=90% | FAIL |
-| Tool selection | 82.9% | >=85% | FAIL |
-| Escalation precision | 86.7% | >=85% | PASS |
-| Escalation recall | 92.9% | >=80% | PASS |
-| Latency p95 | ~20s | <=5s | FAIL (structural, see below) |
+| Intent accuracy | 88% | >=90% | FAIL |
+| Tool selection | 84.0% | >=85% | FAIL |
+| Escalation precision | 91.7% (11/12, small-n) | >=85% | PASS |
+| Escalation recall | 78.6% (11/14, small-n) | >=80% | FAIL |
+| Latency p95 | ~18s | <=5s | FAIL (structural, see below) |
+| Deflection rate | 92.9% | 30-40% | -- |
 
-Intent accuracy uses exact label matching. The classifier correctly identifies
-injection attempts as `intent="escalate"`, which routes to escalation directly.
-This behaviour is captured separately in escalation recall (92.9% PASS). The
-two metrics are intentionally independent.
+Intent accuracy uses exact label matching. Most injection attempts are classified
+as `intent="escalate"` and route directly to a human agent. Three (ADV-001,
+ADV-002, ADV-004) are classified as `intent="unknown"` and route to a clarifying
+question instead. The agent asks for clarification rather than complying with the
+injection, so the operational outcome is safe, but these three count as false
+negatives and drive escalation recall to 78.6%, below the 80% target.
 
 Remaining intent failures are hard adversarial cases (extreme vagueness,
 multi-intent queries, abusive phrasing) and two genuine boundary ambiguities
@@ -124,7 +127,7 @@ intent misclassification. Full failure analysis in
 
 ## Known constraints
 
-**Latency:** p50 is approximately 11s; p95 is approximately 20s. Each query requires
+**Latency:** p50 is approximately 11s; p95 is approximately 18s. Each query requires
 2-3 sequential Foundry agent runs, and each run involves polling until completion
 (create thread, post message, start run, poll, fetch response). The 5s p95 target
 requires replacing the polling Agents API with streaming Azure OpenAI Chat Completions
@@ -136,9 +139,11 @@ date, update `CLASSIFIER_MODEL`, `ACT_MODEL`, `ESCALATE_MODEL`, and `RESPOND_MOD
 in `.env` to point to supported model deployments.
 
 **Intent accuracy ceiling:** Further refinement of the classifier prompt risks
-regressions on boundary cases. Injection-attempt queries are correctly deflected by
-the routing layer (they escalate to a human agent regardless of the intent label), so
-the metric gap does not represent a functional failure for those cases.
+regressions on boundary cases. Injection attempts are never complied with: they
+route either to escalation or to a clarifying question, and a regression test pins
+this for both classifier outcomes. The three that route to clarification rather
+than escalation are counted as escalation-recall false negatives, which is why
+recall is marked FAIL rather than treated as a non-issue.
 
 **No identity verification:** account IDs are accepted from customer messages without authentication.
 
