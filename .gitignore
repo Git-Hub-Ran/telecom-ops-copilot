@@ -229,3 +229,4 @@ eval/results_*.csv
 # Exception: committed baseline result for auditability
 !eval/results_20260807_1312.csv
 !eval/results_20260811_1335.csv
+!eval/results_20260818_1117.csv

@@ -110,18 +110,23 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 | Metric | Score | Target | Status |
 |---|---|---|---|
 | Intent accuracy | 88% | >=90% | FAIL |
-| Tool selection | 84.0% | >=85% | FAIL |
-| Escalation precision | 91.7% (11/12, small-n) | >=85% | PASS |
-| Escalation recall | 78.6% (11/14, small-n) | >=80% | FAIL |
+| Tool selection | 82.0% | >=85% | FAIL |
+| Escalation precision | 85.7% (12/14, small-n) | >=85% | PASS |
+| Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
 | Latency p95 | ~18s | <=5s | FAIL (structural, see below) |
 | Deflection rate | 92.9% | 30-40% | -- |
 
 Intent accuracy uses exact label matching. Most injection attempts are classified
-as `intent="escalate"` and route directly to a human agent. Three (ADV-001,
-ADV-002, ADV-004) are classified as `intent="unknown"` and route to a clarifying
-question instead. The agent asks for clarification rather than complying with the
-injection, so the operational outcome is safe, but these three count as false
-negatives and drive escalation recall to 78.6%, below the 80% target.
+as `intent="escalate"` and route directly to a human agent. Two (ADV-002, ADV-004)
+are classified as `intent="unknown"` in every run measured so far and route to a
+clarifying question instead. A third (ADV-001) classified as `unknown` in the
+2026-08-11 run and `escalate` in the 2026-08-18 run on identical input, which is
+why escalation recall moved from 78.6% (FAIL) to 85.7% (PASS) between those runs
+with no code or prompt change. The agent asks for clarification rather than
+complying in every case, so the operational outcome is safe either way, but on a
+14-row escalation sample a single classification flip moves recall by roughly 7
+points. See [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md) for the run-to-run
+variance discussion before citing these figures.
 
 Remaining intent failures are hard adversarial cases (extreme vagueness,
 multi-intent queries, abusive phrasing) and two genuine boundary ambiguities
@@ -145,9 +150,10 @@ in `.env` to point to supported model deployments.
 **Intent accuracy ceiling:** Further refinement of the classifier prompt risks
 regressions on boundary cases. Injection attempts are never complied with: they
 route either to escalation or to a clarifying question, and a regression test pins
-this for both classifier outcomes. The three that route to clarification rather
-than escalation are counted as escalation-recall false negatives, which is why
-recall is marked FAIL rather than treated as a non-issue.
+this for both classifier outcomes. The cases that route to clarification rather than
+escalation are counted as escalation-recall false negatives; that count varies between
+runs (3 on 2026-08-11, 2 on 2026-08-18) because one query classifies
+non-deterministically, which is why the recall figure should be read as a range.
 
 **No identity verification:** account IDs are accepted from customer messages without authentication.
 
