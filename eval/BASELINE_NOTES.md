@@ -30,8 +30,21 @@ disputes) are more prevalent than in this eval set. Status is unmarked because
 the metric is informational for this eval run; the target applies to production
 traffic.
 
-Intent accuracy and tool selection are correlated: most tool selection failures
-follow from an intent misclassification routing the query to the wrong path.
+Tool selection is capped structurally, not by classification quality. Of the 27 rows
+scoring below 1.0 in the 2026-08-18 run, 18 score exactly 0.5 because `_run_technical`
+invokes all three technical tools (`get_customer_account`, `check_network_outage`,
+`run_speed_diagnostic`) in sequence on every technical query, while most golden rows
+expect only the one tool the question actually calls for. Those rows are penalised for
+extra-but-correct calls, not wrong ones, and their intent was classified correctly.
+With 18 rows capped at 0.5, the maximum achievable tool selection score is
+(100 - 18*0.5)/100 = 91%, before any other failure is counted. Misclassification
+explains 8 of the 27, and the remaining row is an escalation-path mismatch.
+
+Two honest fixes exist. Make tool invocation conditional so the technical path calls
+only what the query requires, which changes runtime behaviour and needs its own
+evaluation. Or relabel the golden set so technical rows accept the designed
+three-tool sequence, which concedes that the pipeline's fixed sequence is the
+intended contract. Neither has been applied; the 91% ceiling stands.
 
 Tool selection fell from 84.0% to 82.0% after the golden set label correction
 (ADV-001/002/004/005 now expect create_escalation_ticket). Three of those rows
@@ -102,8 +115,9 @@ Group 2 failures but introduced 2 regressions:
 - STD-047: "Is there a fee for receiving paper bills?" -- a policy question the
   rules push toward info, but the golden set expects billing. Genuinely ambiguous.
 
-Further refinement of the boundary rules risks additional regressions. 86% is
-accepted as the stable baseline.
+Further refinement of the boundary rules risks additional regressions. Intent
+accuracy has held at 88% across the August 11 and August 18 runs and is accepted
+as the stable baseline; the 86% figure predates the decontamination re-run.
 
 ### Hard adversarial cases
 
