@@ -9,10 +9,10 @@ Azure AI Foundry agents. Routing, tool execution, escalation, and response gener
 are fully automated; a Streamlit chat interface exposes the pipeline for direct
 customer interaction.
 
-The project demonstrates a production-ready pattern for single-orchestrator pipeline:
-strict separation between deterministic routing (pure Python) and model-dependent work
-(Foundry agents), structured JSON logging throughout, and a 100-query golden set eval
-with measurable pass/fail criteria.
+The project demonstrates a deterministic single-orchestrator pipeline with a documented
+path to production: strict separation between deterministic routing (pure Python) and
+model-dependent work (Foundry agents), structured JSON logging throughout, and a
+100-query golden set eval with measurable pass/fail criteria.
 
 ## Architecture
 
@@ -23,8 +23,10 @@ Each customer message passes through five states in sequence:
    off-topic flag.
 2. **RouteState** (pure Python, no LLM): maps ClassifyOutput to a RoutingDecision
    enum value using priority rules. Unknown intent routes to a clarifying question.
-   Injection attempts are classified as `intent="escalate"` by the classifier and
-   route to escalation directly.
+   Most injection attempts are classified as `intent="escalate"` and route to
+   escalation directly. Three known cases (ADV-001, ADV-002, ADV-004) classify as
+   `unknown` and route to a clarifying question instead; see Known constraints
+   below for details.
 3. **ActState**: calls Python tool functions directly for billing, account, and
    technical paths; invokes a gpt-4o Foundry agent with file_search for info queries.
 4. **EscalateState** (gpt-4o Foundry agent): assembles and persists a human handoff
@@ -42,9 +44,11 @@ Each customer message passes through five states in sequence:
 
 RouteState is the only stateless, model-free component. It applies priority rules
 to map ClassifyOutput to a RoutingDecision enum value. Unknown intent routes to a
-clarifying question. Injection attempts are classified as `intent="escalate"` by the
-classifier and route to escalation directly. The injection defence relies on the
-classifier labelling attacks as `escalate`, not on the unknown routing path.
+clarifying question. Most injection attempts are classified as `intent="escalate"`
+and route to escalation directly. Three known cases (ADV-001, ADV-002, ADV-004)
+classify as `unknown` and route to a clarifying question instead; see Known
+constraints below for details. Neither path complies with the injection, and a
+regression test pins that behaviour for both classifier outcomes.
 
 ## Quick start
 
