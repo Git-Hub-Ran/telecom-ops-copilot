@@ -109,20 +109,20 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 88% | >=90% | FAIL |
-| Tool selection | 82.0% | >=85% | FAIL |
-| Escalation precision | 85.7% (12/14, small-n) | >=85% | PASS |
+| Intent accuracy | 89% | >=90% | FAIL |
+| Tool selection | 82.5% | >=85% | FAIL |
+| Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~18s | <=5s | FAIL (structural, see below) |
+| Latency p95 | ~17s | <=5s | FAIL (structural, see below) |
 | Deflection rate | 92.9% | 30-40% | -- |
 
 Intent accuracy uses exact label matching. Most injection attempts are classified
 as `intent="escalate"` and route directly to a human agent. Two (ADV-002, ADV-004)
-are classified as `intent="unknown"` in every run measured so far and route to a
-clarifying question instead. A third (ADV-001) classified as `unknown` in the
-2026-08-11 run and `escalate` in the 2026-08-18 run on identical input, which is
-why escalation recall moved from 78.6% (FAIL) to 85.7% (PASS) between those runs
-with no code or prompt change. The agent asks for clarification rather than
+are classified as `intent="unknown"` in all three runs measured so far and route to
+a clarifying question instead. A third (ADV-001) classified as `unknown` in the
+2026-08-11 run and `escalate` in both 2026-08-18 runs on identical input, which is
+why escalation recall moved from 78.6% (FAIL) to 85.7% (PASS) between the first two
+runs with no code or prompt change. The agent asks for clarification rather than
 complying in every case, so the operational outcome is safe either way, but on a
 14-row escalation sample a single classification flip moves recall by roughly 7
 points. See [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md) for the run-to-run
@@ -152,7 +152,7 @@ regressions on boundary cases. Injection attempts are never complied with: they
 route either to escalation or to a clarifying question, and a regression test pins
 this for both classifier outcomes. The cases that route to clarification rather than
 escalation are counted as escalation-recall false negatives; that count varies between
-runs (3 on 2026-08-11, 2 on 2026-08-18) because one query classifies
+runs (3 on 2026-08-11, 2 in both 2026-08-18 runs) because one query classifies
 non-deterministically, which is why the recall figure should be read as a range.
 
 **No identity verification:** account IDs are accepted from customer messages without authentication.
