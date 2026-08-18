@@ -363,6 +363,81 @@ class TestRespondStateBuildAgentPrompt:
         assert payload in prompt
 
 
+def _ticket(escalation_id: str = "ESC-20260513-143023-9999") -> EscalationPayload:
+    """Minimal valid EscalationPayload for reference-number tests."""
+    return EscalationPayload(
+        escalation_id=escalation_id,
+        created_at="2026-05-13T14:30:23Z",
+        reason_code="out_of_scope",
+        priority="medium",
+        customer={"account_id": "ACC-001", "phone_contact": None, "name_on_file": None, "verified": False},
+        session={"session_id": "SESS-001", "started_at": "2026-05-13T14:26:00Z", "channel": "chat"},
+        intent={"primary": "billing", "secondary": [], "confidence": 0.85},
+        summary="Customer requested a human agent.",
+        customer_emotion={"sentiment": "neutral", "indicators": []},
+        transcript=[{"role": "customer", "content": "Help", "at": "2026-05-13T14:26:10Z"}],
+        agent_attempts=["Could not resolve"],
+        suggested_next_action="Assist customer directly",
+    )
+
+
+def _escalated_context(session: SessionState) -> StateContext:
+    """Direct escalation context carrying a persisted ticket."""
+    return StateContext(
+        session_state=session,
+        customer_message="I want to speak to a human.",
+        routing_decision=RoutingDecision.SKIP_TO_ESCALATE,
+        act_output=None,
+        escalate_output=CreateEscalationTicketResult(success=True, ticket=_ticket()),
+    )
+
+
+class TestRespondStateEscalationReference:
+    """Tests that the escalation reference number always reaches the customer."""
+
+    @pytest.mark.asyncio
+    async def test_fallback_message_includes_reference_number(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """Agent failure still surfaces the reference number (FR-045 path)."""
+        context = _escalated_context(session)
+        with patch.object(state, "_invoke_agent", side_effect=RuntimeError("timeout")):
+            result = await state.run(context)
+
+        assert _FALLBACK_MESSAGE in result.message
+        assert "ESC-20260513-143023-9999" in result.message
+
+    @pytest.mark.asyncio
+    async def test_agent_message_gets_reference_appended_when_omitted(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """An agent reply that drops the reference number has it appended."""
+        context = _escalated_context(session)
+        agent_json = (
+            '{"message": "A specialist will follow up shortly.", '
+            '"citations": [], "metadata": {}}'
+        )
+        with patch.object(state, "_invoke_agent", return_value=agent_json):
+            result = await state.run(context)
+
+        assert "ESC-20260513-143023-9999" in result.message
+
+    @pytest.mark.asyncio
+    async def test_reference_not_duplicated_when_agent_includes_it(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """An agent reply that already contains the reference is left unchanged."""
+        context = _escalated_context(session)
+        agent_json = (
+            '{"message": "A specialist will follow up. Reference: ESC-20260513-143023-9999.", '
+            '"citations": [], "metadata": {}}'
+        )
+        with patch.object(state, "_invoke_agent", return_value=agent_json):
+            result = await state.run(context)
+
+        assert result.message.count("ESC-20260513-143023-9999") == 1
+
+
 class TestRespondStateMutationContract:
     """Tests for pure-function (no mutation) contract."""
 

@@ -40,6 +40,26 @@ _BYPASS_DECISIONS = frozenset({
 })
 
 
+def _ensure_escalation_reference(message: str, context: StateContext) -> str:
+    """Append the escalation reference number if it is not already in the message.
+
+    The respond agent is instructed to include the reference number, but nothing
+    guarantees it does, and the FR-045 fallback message never contains one. This
+    makes the reference deterministic on every turn that produced a ticket.
+
+    Mirrors the guard in _build_agent_prompt: a ticket that failed to persist has
+    success=False, so no reference number is surfaced for it.
+    """
+    ticket = (
+        context.escalate_output.ticket
+        if context.escalate_output and context.escalate_output.success
+        else None
+    )
+    if ticket and ticket.escalation_id not in message:
+        return f"{message} Your reference number is {ticket.escalation_id}."
+    return message
+
+
 class RespondState(BaseState[StateContext, RespondOutput]):
     """Terminal state that generates the final customer-facing response.
 
@@ -122,7 +142,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
                 raw_response_snippet=raw_json[:200],
             )
             return RespondOutput(
-                message=_FALLBACK_MESSAGE,
+                message=_ensure_escalation_reference(_FALLBACK_MESSAGE, context),
                 citations=[],
                 metadata={"escalation_offered": True},
             )
@@ -255,4 +275,5 @@ class RespondState(BaseState[StateContext, RespondOutput]):
             else metadata.get("escalation_offered", False)
         )
 
+        message = _ensure_escalation_reference(message, context)
         return RespondOutput(message=message, citations=citations, metadata=metadata)
