@@ -28,6 +28,10 @@ traffic.
 Intent accuracy and tool selection are correlated: most tool selection failures
 follow from an intent misclassification routing the query to the wrong path.
 
+The published 84.0% tool selection score predates a golden set label correction
+(ADV-001/002/004/005 now expect create_escalation_ticket, matching the other ten
+escalation rows). A re-run is pending; see commit history for the corrected labels.
+
 ## Known failure categories
 
 Note: the boundary rule examples added to CLASSIFIER_SYSTEM_PROMPT during Phase 2.11
