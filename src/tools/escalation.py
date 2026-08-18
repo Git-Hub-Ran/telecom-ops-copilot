@@ -2,11 +2,12 @@
 
 This module provides the create_escalation_ticket function, which creates
 a structured escalation payload for handoff to human support representatives.
-Tickets are persisted to data/escalations.jsonl (one JSON object per line).
+Tickets are persisted to data/escalations.jsonl (one JSON object per line)
+unless a different path is supplied by the caller.
 """
 
-import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -152,14 +153,19 @@ class CreateEscalationTicketResult(BaseModel):
     )
     error_code: Optional[str] = Field(
         default=None,
-        description="Error code if success=False: validation_failed or creation_failed",
+        description=(
+            "Error code if success=False: validation_failed, persistence_failed, "
+            "or creation_failed"
+        ),
     )
     error_message: Optional[str] = Field(
         default=None, description="Human-readable error explanation if success=False"
     )
 
 
-def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
+def create_escalation_ticket(
+    payload: dict, jsonl_path: Path | None = None
+) -> CreateEscalationTicketResult:
     """Create a structured escalation ticket for human handoff.
 
     This tool creates a complete escalation payload containing all context needed
@@ -181,11 +187,18 @@ def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
         payload: Dictionary containing the escalation data. Must include all required
                  fields per the escalation schema (see docs/ESCALATION_SCHEMA.md).
                  The escalation_id and created_at will be auto-generated if not provided.
+        jsonl_path: Destination file for the appended ticket record. Defaults to
+                 data/escalations.jsonl under the project root. Callers and tests
+                 can supply a different path to avoid writing to the shared log.
 
     Returns:
         CreateEscalationTicketResult with either:
         - success=True and the created ticket with all fields validated
-        - success=False with error_code and error_message explaining validation failures
+        - success=False with error_code and error_message. error_code is
+          validation_failed if the payload is invalid, persistence_failed if the
+          ticket was valid but could not be written to disk, or creation_failed
+          for any other error. On failure the ticket field is None, so callers
+          never surface a reference number for a ticket no human can retrieve.
 
     Examples:
         Create escalation for customer frustration:
@@ -243,17 +256,21 @@ def create_escalation_ticket(payload: dict) -> CreateEscalationTicketResult:
         # Validate and parse the payload using Pydantic
         ticket = EscalationPayload(**payload)
 
-        # Persist ticket to data/escalations.jsonl
-        try:
+        # Persist ticket to the escalation log
+        if jsonl_path is None:
             jsonl_path = PROJECT_ROOT / "data" / "escalations.jsonl"
+        try:
             jsonl_path.parent.mkdir(parents=True, exist_ok=True)
             with open(jsonl_path, "a", encoding="utf-8") as f:
                 f.write(ticket.model_dump_json() + "\n")
         except Exception as write_exc:
-            print(
-                f"Warning: failed to persist escalation ticket "
-                f"{ticket.escalation_id}: {write_exc}",
-                file=sys.stderr,
+            return CreateEscalationTicketResult(
+                success=False,
+                error_code="persistence_failed",
+                error_message=(
+                    f"Escalation ticket {ticket.escalation_id} was validated but "
+                    f"could not be persisted to {jsonl_path}: {write_exc}"
+                ),
             )
 
         return CreateEscalationTicketResult(success=True, ticket=ticket)

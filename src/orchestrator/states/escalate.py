@@ -128,9 +128,11 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
             event_type="escalation_triggered",
             state_name="escalate",
             correlation_id=correlation_id,
-            level="info",
+            level="info" if result.success else "error",
             reason_code=reason_code,
             ticket_success=result.success,
+            error_code=result.error_code,
+            error_message=result.error_message,
         )
 
         return result

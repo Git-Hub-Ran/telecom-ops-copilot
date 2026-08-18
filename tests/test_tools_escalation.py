@@ -7,6 +7,15 @@ import pytest
 from src.tools.escalation import create_escalation_ticket
 
 
+@pytest.fixture(autouse=True)
+def isolate_escalation_log(tmp_path, monkeypatch):
+    """Redirect escalation persistence to tmp_path for every test in this module.
+
+    Without this, each test appends to the real data/escalations.jsonl.
+    """
+    monkeypatch.setattr("src.tools.escalation.PROJECT_ROOT", tmp_path)
+
+
 class TestCreateEscalationTicket:
     """Test suite for create_escalation_ticket function."""
 
@@ -370,6 +379,38 @@ class TestCreateEscalationTicket:
         jsonl_path = tmp_path / "data" / "escalations.jsonl"
         assert jsonl_path.exists()
         record = json.loads(jsonl_path.read_text(encoding="utf-8").strip())
+        assert record["escalation_id"] == result.ticket.escalation_id
+
+    def test_persistence_failure_returns_error_not_success(self, tmp_path):
+        """A write failure returns persistence_failed, never a fabricated ticket.
+
+        Pins the fix for the bug where a failed write still returned success=True,
+        which told the customer they were escalated and handed them a reference
+        number for a ticket no human could retrieve.
+        """
+        blocker = tmp_path / "blocker"
+        blocker.write_text("not a directory", encoding="utf-8")
+
+        payload = self.get_minimal_valid_payload()
+        result = create_escalation_ticket(
+            payload, jsonl_path=blocker / "escalations.jsonl"
+        )
+
+        assert result.success is False
+        assert result.error_code == "persistence_failed"
+        assert result.ticket is None
+        assert "could not be persisted" in result.error_message
+
+    def test_custom_jsonl_path_is_honoured(self, tmp_path):
+        """An explicit jsonl_path is written instead of the default location."""
+        custom_path = tmp_path / "custom" / "tickets.jsonl"
+
+        payload = self.get_minimal_valid_payload()
+        result = create_escalation_ticket(payload, jsonl_path=custom_path)
+
+        assert result.success is True
+        assert custom_path.exists()
+        record = json.loads(custom_path.read_text(encoding="utf-8").strip())
         assert record["escalation_id"] == result.ticket.escalation_id
 
     def test_complete_payload_from_schema_example(self):
