@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -26,13 +27,19 @@ from src.tools.escalation import CreateEscalationTicketResult
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Set required environment variables for Config singleton."""
+def setup_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Set required environment variables for Config singleton.
+
+    Also redirects escalation persistence to tmp_path. EscalateState has no way to
+    inject a jsonl_path into create_escalation_ticket, so any test that reaches the
+    real tool would otherwise append to data/escalations.jsonl.
+    """
     monkeypatch.setenv(
         "AZURE_FOUNDRY_PROJECT_ENDPOINT", "https://test.ai.azure.com/api/projects/test"
     )
     monkeypatch.setenv("AZURE_TENANT_ID", "12345678-1234-1234-1234-123456789abc")
     monkeypatch.setenv("VECTOR_STORE_ID", "vs_test")
+    monkeypatch.setattr("src.tools.escalation.PROJECT_ROOT", tmp_path)
     get_config.cache_clear()
 
 
