@@ -1,8 +1,10 @@
 # Eval Baseline Notes
 
-## Baseline eval date
+## Baseline eval dates
 
-July 1, 2026. Full 100-query golden set (`eval/golden_set.csv`).
+Original baseline: July 1, 2026. Updated after decontamination and label fixes:
+August 11 and August 18, 2026 (see the variance section below). All runs use the
+full 100-query golden set (`eval/golden_set.csv`).
 
 ## Final scores
 
