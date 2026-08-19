@@ -41,10 +41,20 @@ For queries that produce a policy answer, is the answer grounded in retrieved KB
 
 - **Score**: continuous 0.0 to 1.0 from RAGAS faithfulness scoring
 - **Target**: over 0.90 average across policy-related queries
-
-Foundry has its own faithfulness scorer too. Both are computed for comparison; the lower of the two is reported to be conservative.
+- **Status**: not computed in any run to date, see below
 
 Why grounding matters: an answer can sound right and be completely wrong. Grounding faithfulness measures whether the claims in the answer are supported by the actual KB content the agent retrieved.
+
+**Not computed.** Grounding faithfulness has not been computed in any run to date.
+RAGAS dependency resolution succeeds on Python 3.14, but installation fails because
+scikit-network (a transitive dependency) ships no cp314 Windows wheel; its source
+build requires MS C++ Build Tools 14.0+, which are not present in this development
+environment. Computing this metric requires either those build tools, a Python
+version with a prebuilt scikit-network wheel, or running the eval notebook in Google
+Colab as originally specified in docs/PLAN.md. The grounding_score column is
+retained (and empty) in all committed results CSVs to document this gap rather than
+remove the column silently. A Foundry-native faithfulness scorer was also planned as
+a cross-check; it has not been run either.
 
 ### 4. Escalation precision and recall
 
@@ -193,7 +203,7 @@ The project target is met when ALL of the following are true on the full test se
 |---|---|
 | Intent accuracy | >= 90 percent |
 | Tool selection | >= 85 percent average |
-| Grounding faithfulness | >= 0.90 average |
+| Grounding faithfulness | >= 0.90 average (not computed, see section 3) |
 | Escalation precision | >= 85 percent |
 | Escalation recall | >= 80 percent |
 | Deflection rate on `standard` set | 30 to 40 percent |

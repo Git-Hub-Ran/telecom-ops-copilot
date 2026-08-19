@@ -15,10 +15,16 @@ full 100-query golden set (`eval/golden_set.csv`).
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
 | Latency p95 | ~17s | <=5s | FAIL |
+| Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
 Escalation figures are from run 3 (2026-08-18 12:29). They vary between runs; see
 "Run-to-run variance on escalation metrics" below before citing them.
+
+Grounding faithfulness is a required gate in docs/EVAL.md but has never been
+computed; the grounding_score column is empty in all nine committed results CSVs.
+See "Grounding faithfulness" in docs/EVAL.md for the toolchain reason and what
+computing it would require.
 
 Run 3 is the first run against the fully decontaminated classifier prompt
 (commit 22d3a18), which replaced example queries that were paraphrase-adjacent to
