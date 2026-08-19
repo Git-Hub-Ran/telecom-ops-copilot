@@ -1,5 +1,13 @@
 # Telecom Operations Copilot · Project Plan
 
+**Note:** This is the pre-build planning document. Some details describe intended
+architecture that changed during implementation. See docs/ARCHITECTURE.md for what
+actually shipped, and docs/WRITEUP.md for design decisions made along the way.
+Known deltas: frontend deployed as local Streamlit not Hugging Face Spaces;
+orchestration is a custom Python state machine not Microsoft Agent Framework; tools
+are local Python functions not Azure Functions; the knowledge base has 17 documents
+in 4 folders, not 16 in 3.
+
 An AI agent that handles customer service inquiries for a fictional US telecom company (TelSano). The agent classifies customer intent, retrieves relevant policies through file search, calls internal tools for account data, and escalates complex cases with structured context.
 
 ---
@@ -217,7 +225,7 @@ Each state has a clear contract: input, output, what is deterministic, what is L
 
 ### Foundry built-in capabilities (not custom code)
 
-- **File search**: indexes the 16 KB markdown documents. Replaces a custom RAG implementation.
+- **File search**: indexes the 17 KB markdown documents. Replaces a custom RAG implementation.
 - **Tracing**: every model call, every tool call, every state transition is logged with timing and inputs/outputs
 - **Content safety**: XPIA defenses (cross-prompt injection attacks) and jailbreak filters
 - **Evaluations**: built-in evaluators used alongside RAGAS in the evaluation notebook
@@ -328,13 +336,13 @@ If none of these fail, the test set is not strong enough.
 ## 10. Implementation milestones
 
 ### Foundation
-- 16 KB markdown documents (plans, policies, troubleshooting)
+- 17 KB markdown documents (plans, policies, troubleshooting)
 - Mock customer database with 20 accounts, billing history, outages, diagnostics
 - Repository structure with Dev / Main branch separation
 
 ### Agent platform setup
 - Azure AI Foundry project provisioned
-- 16 KB documents indexed into Foundry file search
+- 17 KB documents indexed into Foundry file search
 - Retrieval verified against 10 sample queries
 
 ### Orchestration and tools
@@ -352,7 +360,7 @@ If none of these fail, the test set is not strong enough.
 ### Safety and multi-turn handling
 - Multi-turn memory validated across scripted conversations
 - Escalation flow producing structured handoff payloads
-- Prompt injection defenses validated against both customer input and retrieved content
+- Prompt injection defenses tested against customer input; retrieved-content injection testing was planned but not executed (see "Failure cases to test deliberately" above)
 - Edge cases handled (no account ID, ambiguous account, multi-intent)
 
 ### Evaluation

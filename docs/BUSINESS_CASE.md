@@ -80,7 +80,7 @@ Agentic systems combine: classification + retrieval + tool calling + decision ma
 ### In scope
 
 - 5 intent categories: info, account, billing, technical, escalation
-- 1 built-in retrieval tool (Foundry file search) + 5 custom Azure Functions
+- 1 built-in retrieval tool (Foundry file search) + 5 Python tool functions
 - Single-session memory (no cross-session persistence)
 - English language only
 - US-style telecom (fictional company TelSano)
