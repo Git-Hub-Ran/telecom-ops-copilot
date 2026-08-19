@@ -10,15 +10,18 @@ full 100-query golden set (`eval/golden_set.csv`).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 89% | >=90% | FAIL |
-| Tool selection | 82.5% | >=85% | FAIL |
+| Intent accuracy | 88% | >=90% | FAIL |
+| Tool selection | 82.0% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
 | Latency p95 | ~17s | <=5s | FAIL |
 | Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-Escalation figures are from run 3 (2026-08-18 12:29). They vary between runs; see
+All figures are from run 4 (2026-08-19 11:10), the most recent run and the first
+with citation validation active. Intent accuracy and tool selection are one query
+below run 3 (89% and 82.5%), within the run-to-run variance documented below.
+Escalation figures are unchanged from run 3 but vary between runs; see
 "Run-to-run variance on escalation metrics" below before citing them.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
@@ -26,13 +29,17 @@ computed; the grounding_score column is empty in all nine committed results CSVs
 See "Grounding faithfulness" in docs/EVAL.md for the toolchain reason and what
 computing it would require.
 
-Run 3 is the first run against the fully decontaminated classifier prompt
-(commit 22d3a18), which replaced example queries that were paraphrase-adjacent to
-five golden set rows with topics absent from the golden set entirely. Intent
-accuracy did not drop (88% to 89%), which is consistent with the earlier gain
-reflecting genuine classification rather than memorisation. The 1-point move is
-a single query and is within the run-to-run variance documented below, so it is
-evidence against inflation rather than proof of its absence.
+Run 3 (2026-08-18 12:29) was the first run against the fully decontaminated
+classifier prompt (commit 22d3a18), which replaced example queries that were
+paraphrase-adjacent to five golden set rows with topics absent from the golden set
+entirely. Intent accuracy across the full decontamination history reads 86% on the
+July 1 run against the contaminated prompt, 88% once the verbatim queries were
+replaced with paraphrases, 89% on run 3 with the disjoint-topic prompt, and 88%
+again on run 4. Removing the contaminated examples cost nothing measurable, which
+is consistent with the earlier gain reflecting genuine classification rather than
+memorisation. The 1-point spread across runs 2 through 4 is a single query and sits
+within the run-to-run variance documented below, so this is evidence against
+inflation rather than proof of its absence.
 
 Deflection rate note: the denominator is standard queries only (70 queries). A
 query is deflected when the agent handles it without escalation. 92.9% means
@@ -44,14 +51,14 @@ disputes) are more prevalent than in this eval set. Status is unmarked because
 the metric is informational for this eval run; the target applies to production
 traffic.
 
-Tool selection is capped structurally, not by classification quality. Of the 26 rows
-scoring below 1.0 in run 3, 17 score exactly 0.5 because `_run_technical` invokes all
+Tool selection is capped structurally, not by classification quality. Of the 27 rows
+scoring below 1.0 in run 4, 18 score exactly 0.5 because `_run_technical` invokes all
 three technical tools (`get_customer_account`, `check_network_outage`,
 `run_speed_diagnostic`) in sequence on every technical query, while most golden rows
 expect only the one tool the question actually calls for. Those rows are penalised for
 extra-but-correct calls, not wrong ones, and their intent was classified correctly.
-With 17 rows capped at 0.5, the maximum achievable tool selection score is
-(100 - 17*0.5)/100 = 91.5%, before any other failure is counted. The capped count
+With 18 rows capped at 0.5, the maximum achievable tool selection score is
+(100 - 18*0.5)/100 = 91.0%, before any other failure is counted. The capped count
 varies slightly between runs as classification shifts which queries reach the
 technical path; the ceiling is a property of the dispatch design, not of any run.
 

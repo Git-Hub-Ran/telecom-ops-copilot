@@ -109,12 +109,16 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 89% | >=90% | FAIL |
-| Tool selection | 82.5% | >=85% | FAIL |
+| Intent accuracy | 88% | >=90% | FAIL |
+| Tool selection | 82.0% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
 | Latency p95 | ~17s | <=5s | FAIL (structural, see below) |
 | Deflection rate | 92.9% | 30-40% | -- |
+
+Figures are from run 4 (2026-08-19); intent accuracy and tool selection are one
+query below run 3, within the variance described in
+[`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 Intent accuracy uses exact label matching. Most injection attempts are classified
 as `intent="escalate"` and route directly to a human agent. Two (ADV-002, ADV-004)
