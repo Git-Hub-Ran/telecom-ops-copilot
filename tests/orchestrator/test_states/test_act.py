@@ -10,11 +10,17 @@ from src.config import get_config
 from src.orchestrator.agents.factory import AgentFactory
 from src.orchestrator.models import (
     ClassifyOutput,
+    KBCitation,
     RoutingDecision,
     SessionState,
     StateContext,
 )
-from src.orchestrator.states.act import ActState, _format_billing_outputs
+from src.orchestrator.states.act import (
+    ActState,
+    _format_billing_outputs,
+    _kb_index,
+    _validate_citations,
+)
 from src.tools.billing import Bill, BillingInfo, GetBillingInfoResult
 from src.tools.customer import GetCustomerAccountResult
 from src.tools.diagnostic import RunSpeedDiagnosticResult
@@ -573,3 +579,75 @@ class TestFormatBillingOutputs:
         """Returns (None, None) when the billing result indicates failure."""
         result = _error_billing("not_found")
         assert _format_billing_outputs(result) == (None, None)
+
+
+# ---------------------------------------------------------------------------
+# TestValidateCitations
+# ---------------------------------------------------------------------------
+
+
+def _citation(doc_id: str) -> KBCitation:
+    """KBCitation carrying the given doc_id."""
+    return KBCitation(doc_id=doc_id, section="Overview", relevance="relevant")
+
+
+class TestValidateCitations:
+    """Tests for doc_id normalisation and fabricated-citation dropping."""
+
+    def test_canonical_doc_id_kept_unchanged(self) -> None:
+        """A doc_id that already matches a real KB path is passed through."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("kb/policies/02-late-fees.md")], logger, "corr-001"
+        )
+        assert [c.doc_id for c in result] == ["kb/policies/02-late-fees.md"]
+        logger.log_event.assert_not_called()
+
+    def test_basename_only_doc_id_normalised_to_canonical(self) -> None:
+        """A bare basename resolves to its canonical KB path."""
+        logger = MagicMock()
+        result = _validate_citations([_citation("02-late-fees.md")], logger, "corr-001")
+        assert [c.doc_id for c in result] == ["kb/policies/02-late-fees.md"]
+        logger.log_event.assert_not_called()
+
+    def test_wrong_directory_doc_id_normalised_to_canonical(self) -> None:
+        """A real basename under the wrong directory is corrected."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("kb/06-bundles-and-discounts.md")], logger, "corr-001"
+        )
+        assert [c.doc_id for c in result] == ["kb/plans/06-bundles-and-discounts.md"]
+
+    def test_fabricated_doc_id_dropped_and_logged(self) -> None:
+        """A doc_id matching no KB file is dropped and logged."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("kb/plans/05-internet-100.md")], logger, "corr-001"
+        )
+        assert result == []
+        logger.log_event.assert_called_once()
+        kwargs = logger.log_event.call_args.kwargs
+        assert kwargs["event_type"] == "citation_dropped"
+        assert kwargs["doc_id"] == "kb/plans/05-internet-100.md"
+        assert kwargs["reason"] == "not_found_in_kb"
+        assert kwargs["correlation_id"] == "corr-001"
+
+    def test_other_citation_fields_preserved_on_normalisation(self) -> None:
+        """Normalising doc_id leaves section, relevance, and text_content intact."""
+        citation = KBCitation(
+            doc_id="02-late-fees.md",
+            section="Grace Period",
+            relevance="answers the question",
+            text_content="The grace period is 5 days.",
+        )
+        result = _validate_citations([citation], MagicMock(), "corr-001")
+        assert result[0].section == "Grace Period"
+        assert result[0].relevance == "answers the question"
+        assert result[0].text_content == "The grace period is 5 days."
+
+    def test_kb_index_finds_committed_documents(self) -> None:
+        """The KB index resolves against the real committed kb/ directory."""
+        paths, by_basename = _kb_index()
+        assert "kb/policies/02-late-fees.md" in paths
+        assert by_basename["02-late-fees.md"] == "kb/policies/02-late-fees.md"
+        assert len(paths) == len(by_basename), "basenames must be unique"

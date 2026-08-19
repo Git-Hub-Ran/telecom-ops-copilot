@@ -12,6 +12,7 @@ Per FR-048, each tool attempt is logged as a tool_call event.
 import asyncio
 import json
 from datetime import datetime, timezone
+from functools import lru_cache
 from time import monotonic
 from typing import Any
 
@@ -26,7 +27,7 @@ from src.orchestrator.models import (
     ToolCallRecord,
 )
 from src.orchestrator.observability.structured import StructuredLogger, log_tool_call
-from src.config import get_config
+from src.config import PROJECT_ROOT, get_config
 from src.orchestrator.states.base import BaseState
 from src.tools.billing import GetBillingInfoResult, get_billing_info
 from src.tools.customer import get_customer_account
@@ -127,6 +128,61 @@ def _first_error(records: list[ToolCallRecord]) -> str | None:
         if not record.success and record.error_code:
             return record.error_code
     return None
+
+
+@lru_cache(maxsize=1)
+def _kb_index() -> tuple[frozenset[str], dict[str, str]]:
+    """Return (canonical KB paths, basename to canonical path lookup).
+
+    Cached so the kb/ directory is scanned once per process on first use rather
+    than as an import side effect. KB basenames are unique, so a doc_id carrying
+    only a basename resolves unambiguously to one canonical path.
+    """
+    paths = {
+        p.relative_to(PROJECT_ROOT).as_posix()
+        for p in (PROJECT_ROOT / "kb").rglob("*.md")
+    }
+    return frozenset(paths), {p.rsplit("/", 1)[-1]: p for p in paths}
+
+
+def _validate_citations(
+    citations: list[KBCitation], logger: StructuredLogger, correlation_id: str
+) -> list[KBCitation]:
+    """Normalise citation doc_ids to canonical KB paths and drop fabricated ones.
+
+    The act agent returns doc_id verbatim from its own output, which in practice
+    mixes canonical paths, bare basenames, and paths for documents that do not
+    exist. A doc_id whose basename matches a real KB file is normalised; anything
+    else is dropped so the customer is never shown a citation to a document that
+    cannot be retrieved.
+
+    Args:
+        citations: Citations parsed from the act agent JSON response.
+        logger: StructuredLogger for emitting citation_dropped events.
+        correlation_id: Tracing ID for log events.
+
+    Returns:
+        Citations with canonical doc_ids, excluding any that match no KB file.
+    """
+    kb_paths, kb_by_basename = _kb_index()
+    validated: list[KBCitation] = []
+    for citation in citations:
+        if citation.doc_id in kb_paths:
+            validated.append(citation)
+            continue
+        canonical = kb_by_basename.get(citation.doc_id.rsplit("/", 1)[-1])
+        if canonical is not None:
+            validated.append(citation.model_copy(update={"doc_id": canonical}))
+            continue
+        logger.log_event(
+            event_type="citation_dropped",
+            state_name="act",
+            correlation_id=correlation_id,
+            level="warn",
+            doc_id=citation.doc_id,
+            reason="not_found_in_kb",
+        )
+    return validated
 
 
 class ActState(BaseState[StateContext, ActOutput]):
@@ -388,7 +444,7 @@ class ActState(BaseState[StateContext, ActOutput]):
                 raw_json = raw_json.split("\n", 1)[1]
                 raw_json = raw_json.rsplit("```", 1)[0].strip()
             data = json.loads(raw_json)
-            citations = [
+            parsed = [
                 KBCitation(
                     doc_id=c.get("doc_id", ""),
                     section=c.get("section", ""),
@@ -397,6 +453,7 @@ class ActState(BaseState[StateContext, ActOutput]):
                 )
                 for c in data.get("kb_citations", [])
             ]
+            citations = _validate_citations(parsed, self._logger, correlation_id)
             self._logger.log_event(
                 event_type="act_kb_result",
                 state_name="act",
