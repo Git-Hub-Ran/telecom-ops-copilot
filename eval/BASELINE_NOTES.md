@@ -163,8 +163,12 @@ change in classifier behaviour, which is why a classifier prompt rule did not fi
 ADV-003 (prompt exfiltration attempt) routes correctly to `REFUSE_OFF_TOPIC` with
 `expected_escalation=false`; it is not an escalation failure.
 
-Outcome-based scoring was considered but rejected to keep intent accuracy and
-escalation recall independent. Both metrics are reported separately.
+Outcome-based scoring was implemented in commit 862bada (2026-07-02), which gave
+intent credit for unknown-intent queries that escalated correctly, then reverted the
+next day in commit 83b6908. Intent accuracy stood at 86% at the time, and the change
+would have raised it by rescoring existing behaviour rather than improving it. The
+revert kept intent accuracy and escalation recall independent, so both are reported
+separately and neither absorbs the other's failures.
 
 ### Boundary rule regressions (STD-029, STD-047)
 
