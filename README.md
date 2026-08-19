@@ -179,7 +179,7 @@ src/
   ui/
     app.py                     Streamlit chat interface
 
-tests/                         330 unit tests, no Azure dependency
+tests/                         344 unit tests, no Azure dependency
 eval/
   golden_set.csv               100-query evaluation set
   BASELINE_NOTES.md            Eval scores and failure analysis
@@ -189,10 +189,25 @@ notebooks/
 docs/
   ARCHITECTURE.md
   BUSINESS_CASE.md
+  CAPSTONE_ASSESSMENT.md
   DEPLOYMENT.md
   ESCALATION_SCHEMA.md
   EVAL.md
   KB_NOTES.md
   PLAN.md
   TROUBLESHOOTING.md
+  WRITEUP.md
+  screenshots/                 UI screenshots embedded above
 ```
+
+**Documentation:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
+[BUSINESS_CASE.md](docs/BUSINESS_CASE.md) ·
+[CAPSTONE_ASSESSMENT.md](docs/CAPSTONE_ASSESSMENT.md) ·
+[DEPLOYMENT.md](docs/DEPLOYMENT.md) ·
+[ESCALATION_SCHEMA.md](docs/ESCALATION_SCHEMA.md) ·
+[EVAL.md](docs/EVAL.md) ·
+[KB_NOTES.md](docs/KB_NOTES.md) ·
+[PLAN.md](docs/PLAN.md) ·
+[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) ·
+[WRITEUP.md](docs/WRITEUP.md) ·
+[screenshots/](docs/screenshots)

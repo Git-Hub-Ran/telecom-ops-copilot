@@ -153,7 +153,12 @@ response to an unrecognisable request. Escalation recall is marked FAIL; this is
 as a known acceptable gap until a prompt or routing fix reliably catches all variants.
 
 An injection detection rule was added to CLASSIFIER_SYSTEM_PROMPT (commit a1d049f) but
-did not resolve these three cases in the August 7 2026 re-run.
+did not resolve these three cases in the August 7 2026 re-run. ADV-001 has escalated
+correctly since run 2. ADV-002 and ADV-004 classify as `unknown` in every run measured,
+including the July runs where they still escalated: before commit af3cd76 (2026-07-29)
+`unknown` routed to SKIP_TO_ESCALATE, so they counted as true positives. They became
+false negatives when that rule changed to ASK_CLARIFYING_QUESTION, not through any
+change in classifier behaviour, which is why a classifier prompt rule did not fix them.
 
 ADV-003 (prompt exfiltration attempt) routes correctly to `REFUSE_OFF_TOPIC` with
 `expected_escalation=false`; it is not an escalation failure.
@@ -182,8 +187,12 @@ Tone, hostility, and vagueness that the classifier cannot reliably resolve:
 
 - ADV-008: Poem request mentioning internet -- creative framing bleeds into technical
 - ADV-013: "Something is not working right" -- too vague to classify
-- ADV-014: "I just need some help" -- equally consistent with account or escalate
+- ADV-014: "I just need some help" -- no actionable intent signal; labelled unknown since 2026-08-19, but the classifier reads it as escalate
 - ADV-022: Legal threat ("I am going to sue") -- hostility not mapped to escalate
+
+The committed results CSVs predate the ADV-014 label change and still record
+expected_intent=account for that row; scoring is unaffected because per-row
+correctness was computed at run time.
 
 ### Multi-intent queries
 

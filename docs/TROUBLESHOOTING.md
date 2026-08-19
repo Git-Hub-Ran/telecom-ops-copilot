@@ -327,7 +327,7 @@ The structured logger writes the following fields to stdout for every pipeline t
 
 ### Why this is acceptable for the current deployment
 
-All account data in this pilot is synthetic mock data. Account IDs (`ACC-10001` through `ACC-10005`) do not correspond to real customers, so logging them in full has no privacy impact.
+All account data in this pilot is synthetic mock data. Account IDs (`ACC-10001` through `ACC-10020`) do not correspond to real customers, so logging them in full has no privacy impact.
 
 Escalation tickets are appended to `data/escalations.jsonl`. This file contains the full conversation transcript and the customer account ID. It is excluded from version control via `.gitignore` and should be treated as sensitive on any machine that connects to real customer data.
 
