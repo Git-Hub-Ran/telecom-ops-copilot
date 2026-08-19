@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
-"""Verify eval results CSV against locked metric thresholds from EVAL.md.
+"""Verify eval results CSV against locked thresholds or a previous run.
 
 Usage:
     python scripts/score_eval.py [csv_path]
+    python scripts/score_eval.py [csv_path] --baseline <previous_results.csv>
 
-Auto-selects the most recent eval/results_*.csv when no path is given.
-Reads precomputed per-row scores. No Azure credentials required.
-Exits 0 if the four scored metrics pass, 1 if any fail.
-Latency p95 is printed but excluded from the exit code (architectural constraint).
+Two modes:
 
-Run manually before merging to verify eval metrics have not regressed against
-the committed results CSV. Not included in CI because current scores are below
-threshold targets; see eval/BASELINE_NOTES.md for documented justifications.
+Threshold mode (no --baseline): compares each metric against the locked targets
+in docs/EVAL.md. Those targets are aspirational and several currently fail, so
+this mode is for manual review, not CI. See eval/BASELINE_NOTES.md for the
+documented justifications.
+
+Ratchet mode (--baseline given): compares each metric against the same metric
+computed from the baseline CSV, allowing a 0.5 percentage point buffer for
+run-to-run variance. Fails only on regression, so it stays green while the
+aspirational targets remain unmet. This is what CI runs.
+
+Auto-selects the most recent eval/results_*.csv when no path is given. Reads
+precomputed per-row scores; no Azure credentials required. Latency p95 never
+affects the exit code in either mode, though ratchet mode reports a regression.
 """
 
+import argparse
 import csv
 import glob
 import math
 import sys
 from pathlib import Path
+
+RATCHET_BUFFER = 0.005  # 0.5 percentage points, absorbs small run-to-run drift
 
 DEFAULT_CSV = max(glob.glob("eval/results_*.csv"), default="eval/results_20260811_1335.csv")
 
@@ -105,14 +116,37 @@ def _passes(value: float, op: str, threshold: float) -> bool:
 
 
 def main() -> int:
-    csv_path = Path(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CSV)
+    parser = argparse.ArgumentParser(
+        description="Verify eval results against EVAL.md thresholds or a baseline run."
+    )
+    parser.add_argument(
+        "csv_path", nargs="?", default=DEFAULT_CSV,
+        help="Results CSV to score (default: most recent eval/results_*.csv)",
+    )
+    parser.add_argument(
+        "--baseline", default=None,
+        help="Previous results CSV; enables ratchet mode (fail only on regression)",
+    )
+    args = parser.parse_args()
 
+    csv_path = Path(args.csv_path)
     if not csv_path.exists():
         print(f"ERROR: {csv_path} not found", file=sys.stderr)
         return 1
 
-    print(f"Scoring: {csv_path}\n")
     metrics = compute_metrics(csv_path)
+
+    baseline_metrics: dict[str, float] | None = None
+    if args.baseline is not None:
+        baseline_path = Path(args.baseline)
+        if not baseline_path.exists():
+            print(f"ERROR: {baseline_path} not found", file=sys.stderr)
+            return 1
+        baseline_metrics = compute_metrics(baseline_path)
+        print(f"Scoring: {csv_path}")
+        print(f"Ratchet baseline: {baseline_path} (buffer {RATCHET_BUFFER:.1%})\n")
+    else:
+        print(f"Scoring: {csv_path}\n")
 
     print(f"{'Metric':<25} {'Value':>10}  {'Threshold':>12}  Result")
     print("-" * 58)
@@ -120,20 +154,30 @@ def main() -> int:
     all_pass = True
     for key, (op, threshold) in THRESHOLDS.items():
         value = metrics[key]
-        passed = _passes(value, op, threshold)
+        label, fmt, thr_str = DISPLAY[key]
+        if baseline_metrics is not None:
+            floor = baseline_metrics[key] - RATCHET_BUFFER
+            passed = value >= floor
+            thr_str = f">= {floor:.1%}"
+        else:
+            passed = _passes(value, op, threshold)
         if not passed:
             all_pass = False
-        label, fmt, thr_str = DISPLAY[key]
         print(f"{label:<25} {fmt.format(value):>10}  {thr_str:>12}  {'PASS' if passed else 'FAIL'}")
 
     lat = metrics["latency_p95_ms"]
-    print(f"{'Latency p95':<25} {f'{lat:.0f}ms':>10}  {'<= 5000ms':>12}  INFO (architectural constraint)")
+    lat_note = "INFO (architectural constraint)"
+    if baseline_metrics is not None and lat > baseline_metrics["latency_p95_ms"]:
+        delta = lat - baseline_metrics["latency_p95_ms"]
+        lat_note = f"INFO (regressed {delta:.0f}ms vs baseline, not blocking)"
+    print(f"{'Latency p95':<25} {f'{lat:.0f}ms':>10}  {'<= 5000ms':>12}  {lat_note}")
 
     print()
+    mode = "ratchet" if baseline_metrics is not None else "threshold"
     if all_pass:
-        print("Result: all metrics PASS")
+        print(f"Result: all metrics PASS ({mode} mode)")
         return 0
-    print("Result: one or more metrics FAIL")
+    print(f"Result: one or more metrics FAIL ({mode} mode)")
     return 1
 
 
