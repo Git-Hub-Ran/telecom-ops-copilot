@@ -90,7 +90,7 @@ State Machine Orchestrator  (Microsoft Agent Framework)
    v                                                    v
 +-----------------------------+      +------------------------------+
 | Azure AI Foundry Agent      |      | Azure Functions              |
-| - File search (16 KB docs)  |      | - get_customer_account       |
+| - File search (17 KB docs)  |      | - get_customer_account       |
 | - Agents per state          |      | - get_billing_info           |
 | - Tracing                   |      | - check_network_outage       |
 | - Content safety            |      | - run_speed_diagnostic       |
