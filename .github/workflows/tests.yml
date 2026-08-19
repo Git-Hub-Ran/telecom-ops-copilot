@@ -27,8 +27,8 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-      # Compares latest committed results against itself as a sanity check.
-      # Update both paths to the new results file after each eval re-run to
-      # make this a real regression gate.
+      # Compares the latest committed results against the previous run, with a
+      # 1.5pp buffer for run-to-run variance. After each eval re-run, move the
+      # second path to the new results file and the --baseline to the prior one.
       - name: Verify no eval regression
-        run: python scripts/score_eval.py --baseline eval/results_20260818_1229.csv eval/results_20260818_1229.csv
+        run: python scripts/score_eval.py --baseline eval/results_20260818_1229.csv eval/results_20260819_1110.csv

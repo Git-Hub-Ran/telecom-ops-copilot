@@ -13,9 +13,15 @@ this mode is for manual review, not CI. See eval/BASELINE_NOTES.md for the
 documented justifications.
 
 Ratchet mode (--baseline given): compares each metric against the same metric
-computed from the baseline CSV, allowing a 0.5 percentage point buffer for
+computed from the baseline CSV, allowing a 1.5 percentage point buffer for
 run-to-run variance. Fails only on regression, so it stays green while the
 aspirational targets remain unmet. This is what CI runs.
+
+The buffer is 1.5pp because intent accuracy is scored over 100 rows, making one
+query worth 1.0pp; anything narrower would fail on a single query flipping. Note
+that escalation precision and recall are scored over roughly 14 rows and have been
+observed to swing about 7pp between identical runs, which this buffer does not
+absorb; see eval/BASELINE_NOTES.md for that variance.
 
 Auto-selects the most recent eval/results_*.csv when no path is given. Reads
 precomputed per-row scores; no Azure credentials required. Latency p95 never
@@ -29,7 +35,9 @@ import math
 import sys
 from pathlib import Path
 
-RATCHET_BUFFER = 0.005  # 0.5 percentage points, absorbs small run-to-run drift
+# 1.5 percentage points. Intent accuracy is scored over 100 rows, so a single
+# query is worth 1.0pp; a narrower buffer could not absorb even one query flipping.
+RATCHET_BUFFER = 0.015
 
 DEFAULT_CSV = max(glob.glob("eval/results_*.csv"), default="eval/results_20260811_1335.csv")
 

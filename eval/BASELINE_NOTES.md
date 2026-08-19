@@ -66,6 +66,28 @@ Tool selection fell from 84.0% to 82.0% after the golden set label correction
 previously scored 1.0 for producing no tool call, which was credit for failing to
 escalate; one scored 0.0 for escalating correctly. The lower figure is the honest one.
 
+## Run 4 (2026-08-19): citation validation confirmed live
+
+Run 4 is the first run with KB citation validation active (commit 131b6de). Of the
+20 distinct doc_ids in run 3, 14 were non-canonical: bare basenames such as
+`01-essential.md`, and fabricated paths such as `kb/03-connect.md` and
+`kb/plans/05-internet-100.md` that match no KB file. Run 4 produced 13 distinct
+doc_ids, all 13 canonical. Every citation now resolves to a real document.
+
+The validator checks existence, not relevance, and run 4 shows why that distinction
+matters. STD-018 ("Do you offer international roaming?") cited
+`kb/troubleshooting/03-mobile-no-signal.md`. That document exists, so validation
+passed it through, but it does not answer the question. Catching that requires
+grounding faithfulness, which is documented above as not computed.
+
+Whether any citations were dropped in run 4 cannot be determined from the CSV, which
+records only post-validation output. An empty citation list is indistinguishable
+from a list whose entries were all dropped; only the citation_dropped log events
+separate the two.
+
+Run 4 scored 88.0% intent accuracy against run 3's 89.0%, a one-query difference
+within the variance described below.
+
 ## Run-to-run variance on escalation metrics
 
 Two consecutive runs on the same golden set and code produced different escalation
@@ -76,8 +98,9 @@ metrics due to classifier non-determinism on ambiguous rows:
 | 1 | 2026-08-11 | 91.7% (11/12) | 78.6% (11/14) |
 | 2 | 2026-08-18 11:17 | 85.7% (12/14) | 85.7% (12/14) |
 | 3 | 2026-08-18 12:29 | 92.3% (12/13) | 85.7% (12/14) |
+| 4 | 2026-08-19 11:10 | 92.3% (12/13) | 85.7% (12/14) |
 
-Across three runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
+Across four runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
 Run 3 differs from run 2 only in that ADV-020 stopped escalating, removing one
 false positive; no code touching that path changed between them.
 
