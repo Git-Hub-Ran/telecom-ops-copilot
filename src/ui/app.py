@@ -17,6 +17,7 @@ end of each turn for UI progress display.
 """
 
 import asyncio
+import re
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -26,6 +27,20 @@ from src.config import get_config
 from src.orchestrator.agents.factory import AgentFactory
 from src.orchestrator.models.session import ConversationTurn, SessionState
 from src.orchestrator.state_machine import StateMachine
+
+
+_MD_IMAGE = re.compile(r"!\[([^\]]*)\]\([^)]*\)")
+
+
+def _render_agent_text(text: str) -> str:
+    """Prepare agent output for Markdown rendering.
+
+    Escapes $ so amounts are not parsed as LaTeX, and strips Markdown image
+    syntax, which Streamlit renders as an <img> that fetches its URL on display.
+    The alt text is kept so nothing silently disappears from the reply. All other
+    Markdown is preserved: KB answers use bullets and bold.
+    """
+    return _MD_IMAGE.sub(r"\1", text).replace("$", r"\$")
 
 
 @st.cache_resource(show_spinner=False)
@@ -93,8 +108,10 @@ def _render_history() -> None:
     for turn in history:
         role = "user" if turn["role"] == "customer" else "assistant"
         with st.chat_message(role):
-            content = turn["content"].replace("$", r"\$") if turn["role"] == "agent" else turn["content"]
-            st.write(content)
+            if turn["role"] == "agent":
+                st.write(_render_agent_text(turn["content"]))
+            else:
+                st.text(turn["content"])
 
 
 def _handle_input(user_message: str, machine: StateMachine) -> None:
@@ -114,7 +131,7 @@ def _handle_input(user_message: str, machine: StateMachine) -> None:
         None. Mutates st.session_state and renders Streamlit elements.
     """
     with st.chat_message("user"):
-        st.markdown(user_message)
+        st.text(user_message)
 
     st.session_state["current_state"] = "processing"
 
@@ -135,7 +152,7 @@ def _handle_input(user_message: str, machine: StateMachine) -> None:
     st.session_state["current_state"] = "done"
 
     with st.chat_message("assistant"):
-        st.write(result.message.replace("$", r"\$"))
+        st.write(_render_agent_text(result.message))
 
         if result.citations:
             with st.expander("Sources"):

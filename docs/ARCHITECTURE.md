@@ -306,6 +306,16 @@ rather than asserting a handoff occurred. Separating the two states would mean a
 second derived flag, set only when `escalate_output.success` is true, with the
 customer-facing message distinguishing an offer from a filed ticket.
 
+**Markdown links in agent output are not stripped.** Agent replies render as
+GitHub-flavored Markdown so KB answers can use bullets and bold. Image syntax is
+removed before rendering because Streamlit fetches the URL when the message
+displays, which would leak the viewer's IP and timing to whoever chose the URL.
+Link syntax is left intact: a link requires a deliberate click rather than firing
+on render, so it is a phishing consideration rather than a beacon. A UI that
+renders agent text in a context where clicks are cheaper, or that shows these
+messages to someone other than the customer who prompted them, should revisit
+this.
+
 ---
 
 ## Extension paths
