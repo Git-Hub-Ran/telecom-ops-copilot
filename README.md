@@ -179,7 +179,7 @@ src/
   ui/
     app.py                     Streamlit chat interface
 
-tests/                         347 unit tests, no Azure dependency
+tests/                         Unit test suite, no Azure dependency
 eval/
   golden_set.csv               100-query evaluation set
   BASELINE_NOTES.md            Eval scores and failure analysis
