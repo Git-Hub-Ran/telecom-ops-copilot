@@ -282,6 +282,18 @@ messages without any authentication check. The escalation ticket hardcodes
 verify the customer against name, phone, or an authenticated session before
 setting this field.
 
+**Escalation tickets omit customer name and phone.** Both are left `None` even
+when technically available, for example after a successful account lookup on the
+technical path, where the account record sits in `act_output.tool_results_json`.
+Populating them would attribute unverified contact details to an account the
+customer typed but was never confirmed to own. A verified identity would need to
+exist before surfacing name and phone on a ticket; recovering them from the current
+unverified session binding would create false confidence for the human agent
+reviewing the ticket, the same failure mode fixed for `escalation_offered`
+(commit e54fa0a) and `verified` (commit 92dbd8d). Populating these fields correctly
+would require carrying verified account data structurally through the pipeline, not
+recovering it from serialized tool output.
+
 **Account ID extraction.** The pipeline extracts account IDs matching the
 pattern ACC-XXXXX from each customer message and stores them in session state.
 Once set, the account ID persists across turns and is not overwritten by
