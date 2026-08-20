@@ -6,7 +6,7 @@ Four of the five pipeline states depend on work that cannot be reduced to determ
 
 ## 2. Where can the system hallucinate or make bad calls?
 
-KB citations are self-reported by the respond agent: the agent lists documents it claims to have used, but there is no verification that those documents actually grounded the response. The respond agent on non-billing paths receives only structured metadata, not raw tool output, and may supplement with training knowledge when KB citations are thin. Account IDs are extracted from customer messages with no identity check: any user can query any account by typing a valid ID pattern, and `verified=False` is hardcoded in the escalation ticket. The escalation summary is gpt-4o free text describing the situation; it could mischaracterize the customer's issue to the human agent who picks it up.
+KB citations shown to the customer are taken from the validated act_output set, not from the respond agent, so it cannot invent or drop a doc_id. What remains unverified is whether the cited documents actually grounded the answer text: the citation is proof of retrieval, not of use, and establishing use requires grounding faithfulness, which is not computed. The respond agent on non-billing paths receives only structured metadata, not raw tool output, and may supplement with training knowledge when KB citations are thin. Account IDs are extracted from customer messages with no identity check: any user can query any account by typing a valid ID pattern, and `verified=False` is hardcoded in the escalation ticket. The escalation summary is gpt-4o free text describing the situation; it could mischaracterize the customer's issue to the human agent who picks it up.
 
 ## 3. What are the operational risks?
 

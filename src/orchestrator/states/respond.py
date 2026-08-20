@@ -244,25 +244,34 @@ class RespondState(BaseState[StateContext, RespondOutput]):
     def _build_output(self, context: StateContext, data: dict[str, Any]) -> RespondOutput:
         """Assemble RespondOutput from parsed agent response and context.
 
-        Extracts message, citations, and metadata from the agent response dict,
-        then merges computed metadata fields derived from context. Computed
-        fields overwrite any agent-provided values for the same keys.
+        Extracts message and metadata from the agent response dict, then merges
+        computed metadata fields derived from context. Computed fields overwrite
+        any agent-provided values for the same keys.
+
+        Citations are taken from act_output.kb_citations, which _validate_citations
+        in act.py has already checked against the real KB file list. The respond
+        agent's own "citations" field is ignored: routing it through the model would
+        let it invent doc_ids or silently drop validated ones, and the customer sees
+        this list directly in the UI's Sources expander.
 
         Args:
             context: StateContext providing act_output and escalate_output
-                     for metadata computation.
+                     for citation and metadata computation.
             data: Parsed JSON dict from the RespondAgent response, expected
-                  to contain "message", "citations", and "metadata" keys.
+                  to contain "message" and "metadata" keys.
 
         Returns:
             RespondOutput with message, citations list, and merged metadata.
         """
         message: str = data.get("message", _FALLBACK_MESSAGE)
-        citations: list[str] = data.get("citations", [])
         metadata: dict[str, Any] = dict(data.get("metadata", {}))
 
         act_output = context.act_output
         escalate_output = context.escalate_output
+
+        citations: list[str] = (
+            [c.doc_id for c in act_output.kb_citations] if act_output else []
+        )
 
         metadata["kb_docs_used"] = len(act_output.kb_citations) if act_output else 0
         metadata["tools_called"] = len(act_output.tools_called) if act_output else 0

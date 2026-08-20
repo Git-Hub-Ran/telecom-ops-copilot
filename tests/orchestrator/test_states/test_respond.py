@@ -268,6 +268,49 @@ class TestRespondStateAgentFallback:
 # ---------------------------------------------------------------------------
 
 
+class TestRespondStateCitationSource:
+    """Tests that customer-visible citations come from the validated act_output set."""
+
+    @pytest.mark.asyncio
+    async def test_citations_come_from_act_output_not_agent(
+        self, state: RespondState, resolved_context: StateContext
+    ) -> None:
+        """Citations reflect act_output.kb_citations regardless of the agent's JSON."""
+        agent_json = _agent_json(
+            citations=["kb/plans/99-invented.md", "totally-made-up.md"]
+        )
+        with patch.object(state, "_invoke_agent", return_value=agent_json):
+            result = await state.run(resolved_context)
+
+        assert result.citations == ["kb/01.md"]
+        assert "kb/plans/99-invented.md" not in result.citations
+        assert len(result.citations) == result.metadata["kb_docs_used"]
+
+    @pytest.mark.asyncio
+    async def test_citations_empty_on_direct_escalation(
+        self, state: RespondState, direct_escalation_context: StateContext
+    ) -> None:
+        """SKIP_TO_ESCALATE has no act_output, so no citations reach the customer."""
+        agent_json = _agent_json(citations=["kb/policies/02-late-fees.md"])
+        with patch.object(state, "_invoke_agent", return_value=agent_json):
+            result = await state.run(direct_escalation_context)
+
+        assert result.citations == []
+        assert result.metadata["kb_docs_used"] == 0
+
+    @pytest.mark.asyncio
+    async def test_citations_empty_on_unresolved_escalation(
+        self, state: RespondState, unresolved_escalated_context: StateContext
+    ) -> None:
+        """An escalated path with no KB lookup yields no citations."""
+        agent_json = _agent_json(citations=["kb/policies/02-late-fees.md"])
+        with patch.object(state, "_invoke_agent", return_value=agent_json):
+            result = await state.run(unresolved_escalated_context)
+
+        assert result.citations == []
+        assert result.metadata["kb_docs_used"] == 0
+
+
 class TestRespondStateMetadata:
     """Tests for metadata field population."""
 
