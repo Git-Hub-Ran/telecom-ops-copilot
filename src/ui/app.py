@@ -143,7 +143,7 @@ def _handle_input(user_message: str, machine: StateMachine) -> None:
                     st.markdown(f"- {citation}")
 
         if result.metadata.get("escalation_offered"):
-            st.info("Your request has been escalated to a support specialist.")
+            st.info("A support specialist can assist you further with this.")
 
 
 def main() -> None:

@@ -280,7 +280,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
             metadata["error_code"] = act_output.error_details
 
         metadata["escalation_offered"] = (
-            True if escalate_output is not None
+            True if escalate_output is not None and escalate_output.success
             else metadata.get("escalation_offered", False)
         )
 

@@ -297,6 +297,15 @@ Chat Completions for agents that do not use `file_search`, and a separate
 vector search step for the INFO_PATH. This is a significant architectural
 change and is deferred.
 
+**No distinction between escalation offered and escalation filed.** A single
+metadata flag, `escalation_offered`, covers both "a ticket was created" and "the
+message invites the customer to escalate". The respond agent may set it when no
+escalation ran, which is intended: the `not_found` path and the FR-045 fallback both
+offer escalation without filing anything. The UI text is therefore worded neutrally
+rather than asserting a handoff occurred. Separating the two states would mean a
+second derived flag, set only when `escalate_output.success` is true, with the
+customer-facing message distinguishing an offer from a filed ticket.
+
 ---
 
 ## Extension paths

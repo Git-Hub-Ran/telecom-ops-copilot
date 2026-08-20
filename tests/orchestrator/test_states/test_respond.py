@@ -315,6 +315,25 @@ class TestRespondStateMetadata:
     """Tests for metadata field population."""
 
     @pytest.mark.asyncio
+    async def test_failed_ticket_does_not_set_escalation_offered(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """A ticket that failed to persist must not report escalation to the customer."""
+        context = StateContext(
+            session_state=session,
+            customer_message="I want to speak to a human.",
+            routing_decision=RoutingDecision.SKIP_TO_ESCALATE,
+            act_output=None,
+            escalate_output=CreateEscalationTicketResult(
+                success=False, error_code="persistence_failed"
+            ),
+        )
+        with patch.object(state, "_invoke_agent", return_value=_agent_json()):
+            result = await state.run(context)
+
+        assert result.metadata["escalation_offered"] is False
+
+    @pytest.mark.asyncio
     async def test_kb_docs_used_matches_citations_count(
         self, state: RespondState, resolved_context: StateContext
     ) -> None:
