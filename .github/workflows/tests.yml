@@ -27,8 +27,13 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-      # Compares the latest committed results against the previous run, with a
-      # 1.5pp buffer for run-to-run variance. After each eval re-run, move the
-      # second path to the new results file and the --baseline to the prior one.
-      - name: Verify no eval regression
+      # Re-scores two committed results CSVs against each other with a 1.5pp
+      # buffer. This catches bugs in scoring logic and corruption of the
+      # committed CSVs. It CANNOT detect regressions in the classifier, routing,
+      # or tools: both inputs are static files, and a fresh measurement would
+      # need Azure credentials and a ~20 minute eval run, neither of which CI
+      # has. The eval is run manually before merging; see docs/EVAL.md.
+      # After each eval re-run, move the second path to the new results file
+      # and the --baseline to the prior one.
+      - name: Verify eval scoring integrity
         run: python scripts/score_eval.py --baseline eval/results_20260818_1229.csv eval/results_20260819_1110.csv
