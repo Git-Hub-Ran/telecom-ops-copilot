@@ -117,6 +117,10 @@ class ClassifyState(BaseState[StateContext, ClassifyOutput]):
 
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, agent.id, content)
+            raw_json = raw_json.strip()
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("\n", 1)[1]
+                raw_json = raw_json.rsplit("```", 1)[0].strip()
             result = ClassifyOutput.model_validate_json(raw_json)
         except Exception as exc:
             self._logger.log_event(

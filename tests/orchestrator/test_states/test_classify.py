@@ -213,6 +213,29 @@ class TestClassifyStateHappyPaths:
             result = await state.run(context)
         assert result.detected_emotion is None
 
+    @pytest.mark.asyncio
+    async def test_fenced_json_response_parses(
+        self, state: ClassifyState, context: StateContext
+    ) -> None:
+        """A response wrapped in a markdown code fence still parses."""
+        fenced = "```json\n" + _json_response(intent="technical", confidence=0.88) + "\n```"
+        with patch.object(state, "_invoke_agent", return_value=fenced):
+            result = await state.run(context)
+
+        assert result.intent == "technical"
+        assert result.confidence == 0.88
+
+    @pytest.mark.asyncio
+    async def test_bare_fence_without_language_tag_parses(
+        self, state: ClassifyState, context: StateContext
+    ) -> None:
+        """A fence with no language tag parses the same way."""
+        fenced = "```\n" + _json_response(intent="info", confidence=0.7) + "\n```"
+        with patch.object(state, "_invoke_agent", return_value=fenced):
+            result = await state.run(context)
+
+        assert result.intent == "info"
+
 
 # ---------------------------------------------------------------------------
 # ClassifyState.run() - error / fallback cases
