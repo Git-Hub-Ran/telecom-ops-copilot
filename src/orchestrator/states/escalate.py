@@ -105,6 +105,10 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
         raw_json = ""
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, content)
+            raw_json = raw_json.strip()
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("\n", 1)[1]
+                raw_json = raw_json.rsplit("```", 1)[0].strip()
             data = json.loads(raw_json)
             summary: str = data["summary"]
             suggested_next_action: str = data["suggested_next_action"]
@@ -254,11 +258,7 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in escalate agent thread.")
-        text = msg.text.value.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1]
-            text = text.rsplit("```", 1)[0].strip()
-        return text
+        return msg.text.value
 
     def _build_payload(
         self,

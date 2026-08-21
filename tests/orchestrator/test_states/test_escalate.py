@@ -236,6 +236,52 @@ class TestEscalateStateAgentFallback:
         assert len(captured_payload) == 1
         assert "manual review" in captured_payload[0]["summary"].lower()
 
+    @pytest.mark.asyncio
+    async def test_fenced_json_response_parses(
+        self, state: EscalateState, skip_context: StateContext
+    ) -> None:
+        """A response wrapped in a markdown code fence still parses."""
+        captured_payload: list[dict] = []
+
+        def capture_ticket(payload: dict) -> CreateEscalationTicketResult:
+            captured_payload.append(payload)
+            return _ticket_ok()
+
+        fenced = "```json\n" + _agent_json(summary="Fenced summary text.") + "\n```"
+        with (
+            patch.object(state, "_invoke_agent", return_value=fenced),
+            patch(
+                "src.orchestrator.states.escalate.create_escalation_ticket",
+                side_effect=capture_ticket,
+            ),
+        ):
+            await state.run(skip_context)
+
+        assert captured_payload[0]["summary"] == "Fenced summary text."
+
+    @pytest.mark.asyncio
+    async def test_bare_fence_without_language_tag_parses(
+        self, state: EscalateState, skip_context: StateContext
+    ) -> None:
+        """A fence with no language tag parses the same way."""
+        captured_payload: list[dict] = []
+
+        def capture_ticket(payload: dict) -> CreateEscalationTicketResult:
+            captured_payload.append(payload)
+            return _ticket_ok()
+
+        fenced = "```\n" + _agent_json(summary="Bare fence summary.") + "\n```"
+        with (
+            patch.object(state, "_invoke_agent", return_value=fenced),
+            patch(
+                "src.orchestrator.states.escalate.create_escalation_ticket",
+                side_effect=capture_ticket,
+            ),
+        ):
+            await state.run(skip_context)
+
+        assert captured_payload[0]["summary"] == "Bare fence summary."
+
 
 # ---------------------------------------------------------------------------
 # TestEscalateStateTicketFailure

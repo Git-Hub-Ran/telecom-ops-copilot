@@ -262,6 +262,28 @@ class TestRespondStateAgentFallback:
             result = await state.run(resolved_context)
         assert isinstance(result, RespondOutput)
 
+    @pytest.mark.asyncio
+    async def test_fenced_json_response_parses(
+        self, state: RespondState, resolved_context: StateContext
+    ) -> None:
+        """A response wrapped in a markdown code fence still parses."""
+        fenced = "```json\n" + _agent_json(message="Fenced reply.") + "\n```"
+        with patch.object(state, "_invoke_agent", return_value=fenced):
+            result = await state.run(resolved_context)
+
+        assert result.message == "Fenced reply."
+
+    @pytest.mark.asyncio
+    async def test_bare_fence_without_language_tag_parses(
+        self, state: RespondState, resolved_context: StateContext
+    ) -> None:
+        """A fence with no language tag parses the same way."""
+        fenced = "```\n" + _agent_json(message="Bare fence reply.") + "\n```"
+        with patch.object(state, "_invoke_agent", return_value=fenced):
+            result = await state.run(resolved_context)
+
+        assert result.message == "Bare fence reply."
+
 
 # ---------------------------------------------------------------------------
 # TestRespondStateMetadata

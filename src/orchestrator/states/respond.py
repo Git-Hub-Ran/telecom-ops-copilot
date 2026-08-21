@@ -129,6 +129,10 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         raw_json = ""
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, content)
+            raw_json = raw_json.strip()
+            if raw_json.startswith("```"):
+                raw_json = raw_json.split("\n", 1)[1]
+                raw_json = raw_json.rsplit("```", 1)[0].strip()
             data = json.loads(raw_json)
             return self._build_output(context, data)
         except Exception as exc:
@@ -235,11 +239,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         )
         if msg is None:
             raise RuntimeError("No assistant text response found in respond agent thread.")
-        text = msg.text.value.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1]
-            text = text.rsplit("```", 1)[0].strip()
-        return text
+        return msg.text.value
 
     def _build_output(self, context: StateContext, data: dict[str, Any]) -> RespondOutput:
         """Assemble RespondOutput from parsed agent response and context.
