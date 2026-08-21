@@ -454,19 +454,30 @@ class ActState(BaseState[StateContext, ActOutput]):
                 for c in data.get("kb_citations", [])
             ]
             citations = _validate_citations(parsed, self._logger, correlation_id)
+            # A non-empty citation list that validates down to nothing means every
+            # doc_id the agent produced was fabricated. That is a model failure, not
+            # a legitimate absence of KB coverage, so it must not report success.
+            all_fabricated = bool(parsed) and not citations
+            resolution_status = "unresolved" if all_fabricated else "resolved"
+            error_details = (
+                f"all {len(parsed)} KB citations referenced documents not in the KB"
+                if all_fabricated
+                else None
+            )
             self._logger.log_event(
                 event_type="act_kb_result",
                 state_name="act",
                 correlation_id=correlation_id,
-                level="info",
-                resolution_status="resolved",
+                level="warn" if all_fabricated else "info",
+                resolution_status=resolution_status,
                 kb_citation_count=len(citations),
+                kb_citations_dropped=len(parsed) - len(citations),
             )
             return ActOutput(
-                resolution_status="resolved",
+                resolution_status=resolution_status,
                 tools_called=[],
                 kb_citations=citations,
-                error_details=None,
+                error_details=error_details,
             )
         except Exception as exc:
             self._logger.log_event(

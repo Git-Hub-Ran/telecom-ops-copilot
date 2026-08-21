@@ -552,6 +552,58 @@ class TestActStateContextHandling:
         assert result.resolution_status == "unresolved"
         assert result.kb_citations == []
 
+    @pytest.mark.asyncio
+    async def test_info_path_no_kb_match_stays_resolved(
+        self, state: ActState, session: SessionState
+    ) -> None:
+        """An agent that honestly returns no citations is resolved, not a failure."""
+        context = _make_context(session, RoutingDecision.INFO_PATH)
+        empty = json.dumps({"kb_citations": []})
+
+        with patch.object(state, "_invoke_agent_for_kb", return_value=empty):
+            result = await state.run(context)
+
+        assert result.resolution_status == "resolved"
+        assert result.kb_citations == []
+        assert result.error_details is None
+
+    @pytest.mark.asyncio
+    async def test_info_path_all_citations_fabricated_returns_unresolved(
+        self, state: ActState, session: SessionState
+    ) -> None:
+        """Every doc_id fabricated means no real evidence, so the turn is unresolved."""
+        context = _make_context(session, RoutingDecision.INFO_PATH)
+        fake = json.dumps({"kb_citations": [
+            {"doc_id": "kb/plans/99-nonexistent.md", "section": "S", "relevance": "r"},
+            {"doc_id": "totally-made-up.md", "section": "S", "relevance": "r"},
+        ]})
+
+        with patch.object(state, "_invoke_agent_for_kb", return_value=fake):
+            result = await state.run(context)
+
+        assert result.resolution_status == "unresolved"
+        assert result.kb_citations == []
+        assert "2" in result.error_details
+        assert "not in the KB" in result.error_details
+
+    @pytest.mark.asyncio
+    async def test_info_path_partial_fabrication_stays_resolved(
+        self, state: ActState, session: SessionState
+    ) -> None:
+        """One real citation surviving is enough to ground the answer."""
+        context = _make_context(session, RoutingDecision.INFO_PATH)
+        mixed = json.dumps({"kb_citations": [
+            {"doc_id": "kb/policies/02-late-fees.md", "section": "S", "relevance": "r"},
+            {"doc_id": "kb/plans/99-nonexistent.md", "section": "S", "relevance": "r"},
+        ]})
+
+        with patch.object(state, "_invoke_agent_for_kb", return_value=mixed):
+            result = await state.run(context)
+
+        assert result.resolution_status == "resolved"
+        assert [c.doc_id for c in result.kb_citations] == ["kb/policies/02-late-fees.md"]
+        assert result.error_details is None
+
 
 # ---------------------------------------------------------------------------
 # TestBillingPreparedResponse
