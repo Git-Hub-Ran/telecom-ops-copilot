@@ -141,7 +141,9 @@ def get_billing_info(account_id: str, months: int = 3) -> GetBillingInfoResult:
         )
 
     # Validate months parameter
-    if not isinstance(months, int) or months < 1 or months > 12:
+    # bool is a subclass of int, so isinstance(True, int) is True and True < 1 is
+    # False. Without the explicit bool check, months=True silently slices to [:1].
+    if isinstance(months, bool) or not isinstance(months, int) or months < 1 or months > 12:
         return GetBillingInfoResult(
             success=False,
             error_code="invalid_months",

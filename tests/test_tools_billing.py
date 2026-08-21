@@ -297,6 +297,22 @@ class TestGetBillingInfo:
         assert result.billing_info is None
         assert result.error_code == "invalid_months"
 
+    def test_invalid_months_true_bool(self):
+        """Test that months=True is rejected, not silently treated as 1."""
+        result = get_billing_info("ACC-10001", months=True)
+
+        assert result.success is False
+        assert result.billing_info is None
+        assert result.error_code == "invalid_months"
+
+    def test_invalid_months_false_bool(self):
+        """Test that months=False is rejected explicitly, not incidentally."""
+        result = get_billing_info("ACC-10001", months=False)
+
+        assert result.success is False
+        assert result.billing_info is None
+        assert result.error_code == "invalid_months"
+
     def test_bill_total_calculation_correct(self):
         """Test that bill total matches subtotal + discounts + taxes."""
         result = get_billing_info("ACC-10001")
