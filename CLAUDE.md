@@ -20,6 +20,9 @@ shell commands, and other important information, read the current plan:
   "Day N", "revised", or "NEW" in any file or commit message.
 - Always run git status before starting new work to verify a
   clean working tree.
+- When replying in English, whether in Claude Code or in chat, use
+  simple, plain English and keep answers short. This does not apply
+  to code itself, only to explanatory text around it.
 
 ## Writing code
 
