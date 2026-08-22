@@ -23,6 +23,11 @@ shell commands, and other important information, read the current plan:
 - When replying in English, whether in Claude Code or in chat, use
   simple, plain English and keep answers short. This does not apply
   to code itself, only to explanatory text around it.
+- Never use the NotebookEdit tool on `.ipynb` files in this repo.
+  Notebook outputs are committed here, and NotebookEdit strips the
+  outputs of every cell it touches and nulls `execution_count`.
+  Edit the notebook JSON surgically instead, at the byte or line
+  level, so outputs and source formatting survive unchanged.
 
 ## Writing code
 
