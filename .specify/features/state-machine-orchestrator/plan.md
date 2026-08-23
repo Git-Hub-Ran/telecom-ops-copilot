@@ -247,7 +247,7 @@ class ClassifyState(BaseState):
 **Decision**: Use `python-dotenv` for .env file, Pydantic Settings for validation.
 
 **Rationale**:
-- Existing project uses .env pattern (see .gitignore line 151)
+- Existing project uses .env pattern (see the Environments section of .gitignore)
 - Pydantic Settings provides type-safe config with validation
 - Azure deployment injects env vars, .env is local development only
 
