@@ -192,7 +192,7 @@ A Colab notebook at `notebooks/03-evaluation.ipynb` does the following:
 2. For each query, run the full agent pipeline (orchestrator + Foundry agents + tools)
 3. Capture: classified intent, tools called, escalation decision, final answer, citations, latency
 4. Compute the 4 metrics per query, aggregate across the set
-5. Output `eval/results_YYYYMMDD.csv` with per-query and aggregate scores
+5. Output `eval/results_YYYYMMDD_HHMM.csv` with per-query and aggregate scores
 6. Generate failure analysis: top categories of failed queries
 
 ### The notebook reconstructs the pipeline, it does not call it
