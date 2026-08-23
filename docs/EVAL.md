@@ -205,15 +205,16 @@ returns: classified intent, tools called, and whether a ticket was created.
 Four differences follow, and each limits what a number means.
 
 **Account IDs** come from the `customer_account_id` column only. `process_turn` also
-extracts them from message text (`state_machine.py:139-162`). No current golden row
-carries an ID in its query text, so this changes nothing today. Latent, not active.
+extracts them from the message text itself, in the `ACC-` regex block at the top of the
+method. No current golden row carries an ID in its query text, so this changes nothing
+today. Latent, not active.
 
 **The billing shortcut is skipped.** When ActState sets `prepared_response`,
-`process_turn` returns it and never calls the respond agent
-(`state_machine.py:283-288`). The notebook always calls it. On the 18 billing rows
-whose account ID resolves, the eval scores agent prose where production ships a fixed
-Python string. Any metric reading `actual_answer` there measures text production would
-not send.
+`process_turn` returns it and never calls the respond agent, via the
+`prepared_response` branch before RespondState. The notebook always calls it. On
+billing rows whose account ID resolves, the eval scores agent prose where production
+ships a fixed Python string. Any metric reading `actual_answer` there measures text
+production would not send.
 
 **Session state is never mutated.** No `detected_emotion` write, no history append, no
 rolling window. Every row is turn one, so no metric describes multi-turn behavior.
