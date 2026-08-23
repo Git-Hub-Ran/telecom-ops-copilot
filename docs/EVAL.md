@@ -195,6 +195,39 @@ A Colab notebook at `notebooks/03-evaluation.ipynb` does the following:
 5. Output `eval/results_YYYYMMDD.csv` with per-query and aggregate scores
 6. Generate failure analysis: top categories of failed queries
 
+### The notebook reconstructs the pipeline, it does not call it
+
+Step 2 is an approximation. The notebook does not call `StateMachine.process_turn()`.
+It drives the five states individually so it can capture values `process_turn` never
+returns: classified intent, tools called, and whether a ticket was created.
+`process_turn` returns only a `RespondOutput`.
+
+Four differences follow, and each limits what a number means.
+
+**Account IDs** come from the `customer_account_id` column only. `process_turn` also
+extracts them from message text (`state_machine.py:139-162`). No current golden row
+carries an ID in its query text, so this changes nothing today. Latent, not active.
+
+**The billing shortcut is skipped.** When ActState sets `prepared_response`,
+`process_turn` returns it and never calls the respond agent
+(`state_machine.py:283-288`). The notebook always calls it. On the 18 billing rows
+whose account ID resolves, the eval scores agent prose where production ships a fixed
+Python string. Any metric reading `actual_answer` there measures text production would
+not send.
+
+**Session state is never mutated.** No `detected_emotion` write, no history append, no
+rolling window. Every row is turn one, so no metric describes multi-turn behavior.
+
+**Failures are flattened.** `process_turn` catches ClassifyState and ActState only,
+letting RouteState, EscalateState, and RespondState exceptions escape. The notebook
+catches everything in one block. Read the `error` column as "something failed", not as
+production behavior.
+
+The committed numbers therefore describe a reconstruction of the pipeline, not the
+pipeline itself. Intent, tool selection, and escalation scores read from the same state
+objects production uses and are faithful. Anything derived from a billing row's answer
+text is not.
+
 ## Pass / fail thresholds
 
 The project target is met when ALL of the following are true on the full test set:
