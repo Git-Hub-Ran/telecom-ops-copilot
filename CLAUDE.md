@@ -23,6 +23,11 @@ shell commands, and other important information, read the current plan:
 - When replying in English, whether in Claude Code or in chat, use
   simple, plain English and keep answers short. This does not apply
   to code itself, only to explanatory text around it.
+- Never cite line numbers in documentation, comments, or commit
+  messages. Reference a symbol, function, or section name instead.
+  Line numbers go stale on any edit above them, including edits made
+  in an unrelated commit, and a citation that drifts back into
+  correctness by chance is not a reference anyone can trust.
 - Never use the NotebookEdit tool on `.ipynb` files in this repo.
   Notebook outputs are committed here, and NotebookEdit strips the
   outputs of every cell it touches and nulls `execution_count`.
