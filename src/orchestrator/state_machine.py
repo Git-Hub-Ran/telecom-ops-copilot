@@ -125,9 +125,12 @@ class StateMachine:
             and metadata.
 
         Raises:
-            No exceptions are propagated. All state-level exceptions are caught
-            and result in either a fallback RespondOutput (ClassifyState) or
-            escalation routing (ActState).
+            Only ClassifyState and ActState are wrapped here. Exceptions from
+            RouteState, EscalateState, and RespondState propagate to the caller.
+            EscalateState and RespondState catch their own agent-call failures
+            and return a fallback, so what propagates in practice is RouteState's
+            ValueError guard or a failure outside those internal handlers, such
+            as prompt building or ticket persistence.
         """
         correlation_id = session.correlation_id
 
