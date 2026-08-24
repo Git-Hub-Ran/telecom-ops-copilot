@@ -36,4 +36,4 @@ jobs:
       # After each eval re-run, move the second path to the new results file
       # and the --baseline to the prior one.
       - name: Verify eval scoring integrity
-        run: python scripts/score_eval.py --baseline eval/results_20260818_1229.csv eval/results_20260819_1110.csv
+        run: python scripts/score_eval.py --baseline eval/results_20260819_1110.csv eval/results_20260823_1802.csv
