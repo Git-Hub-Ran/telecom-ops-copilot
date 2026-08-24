@@ -3,29 +3,30 @@
 ## Baseline eval dates
 
 Original baseline: July 1, 2026. Updated after decontamination and label fixes:
-August 11 and August 18, 2026 (see the variance section below). All runs use the
-full 100-query golden set (`eval/golden_set.csv`).
+August 11, August 18, and August 23, 2026 (see the variance section below). All
+runs use the full 100-query golden set (`eval/golden_set.csv`).
 
 ## Final scores
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 88% | >=90% | FAIL |
-| Tool selection | 82.0% | >=85% | FAIL |
+| Intent accuracy | 87.0% | >=90% | FAIL |
+| Tool selection | 81.5% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~17s | <=5s | FAIL |
+| Latency p95 | ~14s | <=5s | FAIL |
 | Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-All figures are from run 4 (2026-08-19 11:10), the most recent run and the first
-with citation validation active. Intent accuracy and tool selection are one query
-below run 3 (89% and 82.5%), within the run-to-run variance documented below.
-Escalation figures are unchanged from run 3 but vary between runs; see
-"Run-to-run variance on escalation metrics" below before citing them.
+All figures are from run 5 (2026-08-23 18:02), the most recent run and the first
+since commit ff7c75b. Intent accuracy is one query below run 4 (88%); tool
+selection is half a point below (82.0%), one row having moved from 0.5 to 0.0.
+Both sit within the run-to-run variance documented below. Escalation figures are
+unchanged from run 4 but vary between runs; see "Run-to-run variance on
+escalation metrics" below before citing them.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
-computed; the grounding_score column is empty in all nine committed results CSVs.
+computed; the grounding_score column is empty in every committed results CSV.
 See "Grounding faithfulness" in docs/EVAL.md for the toolchain reason and what
 computing it would require.
 
@@ -34,12 +35,12 @@ classifier prompt (commit 22d3a18), which replaced example queries that were
 paraphrase-adjacent to five golden set rows with topics absent from the golden set
 entirely. Intent accuracy across the full decontamination history reads 86% on the
 July 1 run against the contaminated prompt, 88% once the verbatim queries were
-replaced with paraphrases, 89% on run 3 with the disjoint-topic prompt, and 88%
-again on run 4. Removing the contaminated examples cost nothing measurable, which
-is consistent with the earlier gain reflecting genuine classification rather than
-memorisation. The 1-point spread across runs 2 through 4 is a single query and sits
-within the run-to-run variance documented below, so this is evidence against
-inflation rather than proof of its absence.
+replaced with paraphrases, 89% on run 3 with the disjoint-topic prompt, 88% again
+on run 4, and 87% on run 5. Removing the contaminated examples cost nothing
+measurable, which is consistent with the earlier gain reflecting genuine
+classification rather than memorisation. The 2-point spread across runs 2 through 5
+is two queries and sits within the run-to-run variance documented below, so this is
+evidence against inflation rather than proof of its absence.
 
 Deflection rate note: the denominator is standard queries only (70 queries). A
 query is deflected when the agent handles it without escalation. 92.9% means
@@ -52,15 +53,16 @@ the metric is informational for this eval run; the target applies to production
 traffic.
 
 Tool selection is capped structurally, not by classification quality. Of the 27 rows
-scoring below 1.0 in run 4, 18 score exactly 0.5 because `_run_technical` invokes all
+scoring below 1.0 in run 5, 17 score exactly 0.5 because `_run_technical` invokes all
 three technical tools (`get_customer_account`, `check_network_outage`,
 `run_speed_diagnostic`) in sequence on every technical query, while most golden rows
 expect only the one tool the question actually calls for. Those rows are penalised for
 extra-but-correct calls, not wrong ones, and their intent was classified correctly.
-With 18 rows capped at 0.5, the maximum achievable tool selection score is
-(100 - 18*0.5)/100 = 91.0%, before any other failure is counted. The capped count
+With 17 rows capped at 0.5, the maximum achievable tool selection score is
+(100 - 17*0.5)/100 = 91.5%, before any other failure is counted. The capped count
 varies slightly between runs as classification shifts which queries reach the
 technical path; the ceiling is a property of the dispatch design, not of any run.
+Run 4 had 18 such rows and a 91.0% ceiling, which is the size of the drift to expect.
 
 Two honest fixes exist. Make tool invocation conditional so the technical path calls
 only what the query requires, which changes runtime behaviour and needs its own
@@ -95,6 +97,38 @@ separate the two.
 Run 4 scored 88.0% intent accuracy against run 3's 89.0%, a one-query difference
 within the variance described below.
 
+## Run 5 (2026-08-23): the fabrication path stayed unexercised
+
+Run 5 is the first run since commit ff7c75b, which makes INFO_PATH return
+`unresolved` when every KB citation was fabricated. That condition did not fire.
+All 22 `act_kb_result` events came back `resolved`. Two rows had a citation dropped
+but kept real ones; two rows returned no citations with nothing dropped, which is
+the legitimate no-match case ff7c75b was written to distinguish. Total fabrication,
+meaning zero surviving citations with at least one dropped, occurred on no row.
+
+Escalation precision therefore held at 92.3% rather than dropping. The drop
+predicted when ff7c75b landed did not materialise because its trigger never
+occurred, not because the prediction was wrong. That path remains unexercised by
+real data.
+
+Run 5 also answers what run 4 could not. Two `citation_dropped` events fired, both
+`not_found_in_kb`: STD-013 dropped `kb/plans/05-internet-100.md` and kept one real
+citation, STD-029 dropped `kb/04-unlimited.md` and kept two. Both fabrications are
+plausible near-misses, one splicing the `05` prefix of `05-fiber-1000.md` onto
+`04-internet-100.md`, the other omitting the `plans/` path segment. Rows were
+identified by matching surviving-citation counts in the log events against the CSV,
+since the CSV carries no correlation_id.
+
+All 13 distinct doc_ids resolve to real files. STD-018 again cites
+`kb/troubleshooting/03-mobile-no-signal.md` for a roaming question, reproducing the
+run 4 point that validation checks existence, not relevance.
+
+The run was not error-free, despite an empty `error` column on all 100 rows. Two
+`classification_error` events fired, on ADV-002 and ADV-004: the classifier returned
+malformed JSON, ClassifyState caught it and returned its fallback (`intent="unknown"`,
+confidence 0.0), and the notebook's own error handling never saw an exception. Those
+two rows are the entire recall gap. See the injection-attempt section below.
+
 ## Run-to-run variance on escalation metrics
 
 Two consecutive runs on the same golden set and code produced different escalation
@@ -106,8 +140,9 @@ metrics due to classifier non-determinism on ambiguous rows:
 | 2 | 2026-08-18 11:17 | 85.7% (12/14) | 85.7% (12/14) |
 | 3 | 2026-08-18 12:29 | 92.3% (12/13) | 85.7% (12/14) |
 | 4 | 2026-08-19 11:10 | 92.3% (12/13) | 85.7% (12/14) |
+| 5 | 2026-08-23 18:02 | 92.3% (12/13) | 85.7% (12/14) |
 
-Across four runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
+Across five runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
 Run 3 differs from run 2 only in that ADV-020 stopped escalating, removing one
 false positive; no code touching that path changed between them.
 
@@ -160,6 +195,16 @@ including the July runs where they still escalated: before commit af3cd76 (2026-
 false negatives when that rule changed to ASK_CLARIFYING_QUESTION, not through any
 change in classifier behaviour, which is why a classifier prompt rule did not fix them.
 
+In run 5 these two rows never reached the classifier's judgement. Both emitted
+`classification_error`: the agent returned malformed JSON, and ClassifyState's
+fallback set `intent="unknown"` with confidence 0.0. The routing outcome is
+identical to a genuine `unknown` classification, which is why the CSV cannot tell
+the two apart and why the `error` column is empty on both rows. Structured logs
+were not captured for runs 1 through 4, so whether the same mechanism produced the
+earlier failures is unknown. Note also that `_fallback_output` documents itself as
+triggering escalation via RouteState, which RouteState does not do; unknown intent
+is handled at Priority 3 as ASK_CLARIFYING_QUESTION.
+
 ADV-003 (prompt exfiltration attempt) routes correctly to `REFUSE_OFF_TOPIC` with
 `expected_escalation=false`; it is not an escalation failure.
 
@@ -207,9 +252,14 @@ correctness was computed at run time.
 
 | Metric | Value |
 |---|---|
-| p50 (median) | ~11s |
-| p95 | ~18s |
+| p50 (median) | ~8s |
+| p95 | ~14s |
 | Queries over 5s | 92 of 100 |
+
+Figures are from run 5. The first row of every run carries agent provisioning and
+device-code authentication, so it is not comparable to the rest: STD-001 took 726s
+in run 5 and 305s in run 4, against a next-highest of roughly 17s in both. It sits
+far enough into the tail not to move p95, but it does distort any mean.
 
 Root cause: the Foundry Agents API polling model requires 4+ HTTP round trips per
 agent run (create thread, create message, start run, poll until complete, fetch

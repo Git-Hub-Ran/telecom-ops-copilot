@@ -109,22 +109,22 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 88% | >=90% | FAIL |
-| Tool selection | 82.0% | >=85% | FAIL |
+| Intent accuracy | 87.0% | >=90% | FAIL |
+| Tool selection | 81.5% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~17s | <=5s | FAIL (structural, see below) |
+| Latency p95 | ~14s | <=5s | FAIL (structural, see below) |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-Figures are from run 4 (2026-08-19); intent accuracy and tool selection are one
-query below run 3, within the variance described in
+Figures are from run 5 (2026-08-23); intent accuracy is one query below run 4 and
+tool selection half a point below, within the variance described in
 [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 Intent accuracy uses exact label matching. Most injection attempts are classified
 as `intent="escalate"` and route directly to a human agent. Two (ADV-002, ADV-004)
-are classified as `intent="unknown"` in all four runs measured so far and route to
+are classified as `intent="unknown"` in every run measured so far and route to
 a clarifying question instead. A third (ADV-001) classified as `unknown` in the
-2026-08-11 run and `escalate` in the three runs since, on identical input, which is
+2026-08-11 run and `escalate` in every run since, on identical input, which is
 why escalation recall moved from 78.6% (FAIL) to 85.7% (PASS) between the first two
 runs with no code or prompt change. The agent asks for clarification rather than
 complying in every case, so the operational outcome is safe either way, but on a
@@ -140,7 +140,7 @@ intent misclassification. Full failure analysis in
 
 ## Known constraints
 
-**Latency:** p50 is approximately 11s; p95 is approximately 18s. Each query requires
+**Latency:** p50 is approximately 8s; p95 is approximately 14s. Each query requires
 2-3 sequential Foundry agent runs, and each run involves polling until completion
 (create thread, post message, start run, poll, fetch response). The 5s p95 target
 requires replacing the polling Agents API with streaming Azure OpenAI Chat Completions
