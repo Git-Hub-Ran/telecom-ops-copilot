@@ -46,6 +46,32 @@ class TestRenderAgentTextImageStripping:
         assert result == "a and b"
         assert "http" not in result
 
+    def test_reference_image_and_its_definition_are_stripped(self) -> None:
+        """Full reference form. The definition line is what resolves the URL."""
+        result = _render_agent_text(
+            "See ![beacon][b] here.\n\n[b]: https://attacker.test/track.png"
+        )
+        assert "attacker.test" not in result
+        assert "![" not in result
+        assert "See beacon here." in result
+
+    def test_collapsed_reference_image_is_stripped(self) -> None:
+        result = _render_agent_text("See ![beacon][] here.")
+        assert result == "See beacon here."
+
+    def test_shortcut_reference_image_is_stripped(self) -> None:
+        """Bare ![alt] resolves against a definition elsewhere in the message."""
+        result = _render_agent_text(
+            "See ![beacon] here.\n\n[beacon]: https://attacker.test/track.png"
+        )
+        assert "attacker.test" not in result
+        assert "![" not in result
+
+    def test_orphan_reference_definition_is_removed(self) -> None:
+        """A definition with no image still names a URL, so it does not survive."""
+        result = _render_agent_text("Hello.\n\n[b]: https://attacker.test/track.png")
+        assert "attacker.test" not in result
+
 
 class TestRenderAgentTextPreservesFormatting:
     """Markdown the KB answers depend on must survive untouched."""
@@ -55,6 +81,11 @@ class TestRenderAgentTextPreservesFormatting:
 
     def test_bullets_survive(self) -> None:
         text = "Options:\n- Essential\n- Unlimited"
+        assert _render_agent_text(text) == text
+
+    def test_bullet_resembling_a_reference_definition_survives(self) -> None:
+        """The definition pattern is anchored to line start, so bullets are safe."""
+        text = "- [note]: not a definition line"
         assert _render_agent_text(text) == text
 
     def test_links_survive(self) -> None:
@@ -95,9 +126,18 @@ class TestRenderAgentTextEdgeCases:
         [
             "![unclosed(http://x/y.png",
             "!not an image",
-            "![alt] (http://x/y.png)",
         ],
     )
     def test_malformed_image_syntax_is_left_alone(self, text: str) -> None:
         """Only well-formed image syntax is stripped; the rest passes through."""
         assert _render_agent_text(text) == text
+
+    def test_space_before_paren_is_a_shortcut_reference_not_malformed(self) -> None:
+        """`![alt] (url)` is a shortcut reference image plus literal text.
+
+        CommonMark resolves a bare `![alt]` against a `[alt]: url` definition
+        anywhere in the document, so the reference is stripped and the trailing
+        parenthesised text is left as the literal text it is. The cost of covering
+        the shortcut form is that any `![x]` collapses to `x`.
+        """
+        assert _render_agent_text("![alt] (http://x/y.png)") == "alt (http://x/y.png)"

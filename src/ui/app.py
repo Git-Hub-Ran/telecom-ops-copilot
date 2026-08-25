@@ -29,7 +29,15 @@ from src.orchestrator.models.session import ConversationTurn, SessionState
 from src.orchestrator.state_machine import StateMachine
 
 
-_MD_IMAGE = re.compile(r"!\[([^\]]*)\]\([^)]*\)")
+# Any Markdown image: inline ![alt](url), full reference ![alt][ref], collapsed
+# ![alt][], and shortcut ![alt]. The alt text is kept.
+_MD_IMAGE = re.compile(r"!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])?")
+
+# Reference definitions. These render as nothing on their own, but they are what
+# makes ![alt][ref] resolve to a URL, so stripping images is incomplete without
+# them. Removing these also breaks reference-style links, which degrade to plain
+# text; inline links are untouched.
+_MD_REF_DEF = re.compile(r"(?m)^[ \t]*\[[^\]]+\]:[ \t]*\S+.*$\n?")
 
 
 def _render_agent_text(text: str) -> str:
@@ -37,10 +45,13 @@ def _render_agent_text(text: str) -> str:
 
     Escapes $ so amounts are not parsed as LaTeX, and strips Markdown image
     syntax, which Streamlit renders as an <img> that fetches its URL on display.
-    The alt text is kept so nothing silently disappears from the reply. All other
-    Markdown is preserved: KB answers use bullets and bold.
+    All four image forms are covered (inline, full reference, collapsed, and
+    shortcut) along with the reference definitions that resolve them. The alt
+    text is kept so nothing silently disappears from the reply. Inline links and
+    the rest of the Markdown are preserved: KB answers use bullets and bold.
     """
-    return _MD_IMAGE.sub(r"\1", text).replace("$", r"\$")
+    stripped = _MD_REF_DEF.sub("", _MD_IMAGE.sub(r"\1", text))
+    return stripped.replace("$", r"\$")
 
 
 @st.cache_resource(show_spinner=False)
