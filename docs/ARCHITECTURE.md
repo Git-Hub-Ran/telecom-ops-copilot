@@ -299,15 +299,15 @@ pattern ACC-XXXXX from each customer message and stores them in session state.
 Once set, the account ID persists across turns and is not overwritten by
 subsequent messages.
 
-**Latency constraint from Foundry polling architecture.** The p95 latency is
-approximately 20 seconds. Each Foundry agent run requires at minimum four
-HTTP round trips: create thread, post message, start run, poll until complete,
-fetch response. With two to three sequential agent runs per query, the latency
-budget is dominated by this polling overhead. Reaching sub-5s p95 would
-require replacing polling-based Foundry agents with streaming Azure OpenAI
-Chat Completions for agents that do not use `file_search`, and a separate
-vector search step for the INFO_PATH. This is a significant architectural
-change and is deferred.
+**Latency constraint from Foundry polling architecture.** The p95 latency has
+measured between 14.5 and 18.5 seconds across the committed runs. Each Foundry
+agent run requires at minimum four HTTP round trips: create thread, post message,
+start run, poll until complete, fetch response. With two to three sequential agent
+runs per query, the latency budget is dominated by this polling overhead.
+Reaching sub-5s p95 would require replacing polling-based Foundry agents with
+streaming Azure OpenAI Chat Completions for agents that do not use `file_search`,
+and a separate vector search step for the INFO_PATH. This is a significant
+architectural change and is deferred.
 
 **No distinction between escalation offered and escalation filed.** A single
 metadata flag, `escalation_offered`, covers both "a ticket was created" and "the
