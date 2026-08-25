@@ -2,8 +2,8 @@
 """Verify eval results CSV against locked thresholds or a previous run.
 
 Usage:
-    python scripts/score_eval.py [csv_path]
-    python scripts/score_eval.py [csv_path] --baseline <previous_results.csv>
+    python scripts/score_eval.py <csv_path>
+    python scripts/score_eval.py <csv_path> --baseline <previous_results.csv>
 
 Two modes:
 
@@ -23,14 +23,16 @@ that escalation precision and recall are scored over roughly 14 rows and have be
 observed to swing about 7pp between identical runs, which this buffer does not
 absorb; see eval/BASELINE_NOTES.md for that variance.
 
-Auto-selects the most recent eval/results_*.csv when no path is given. Reads
-precomputed per-row scores; no Azure credentials required. Latency p95 never
-affects the exit code in either mode, though ratchet mode reports a regression.
+The results CSV must be named explicitly. There is no default, because the most
+recent file is not necessarily the run you want scored: the committed results
+include runs measured against prompts that were later reverted, and picking the
+newest silently scores one of those. Reads precomputed per-row scores; no Azure
+credentials required. Latency p95 never affects the exit code in either mode,
+though ratchet mode reports a regression.
 """
 
 import argparse
 import csv
-import glob
 import math
 import sys
 from pathlib import Path
@@ -38,8 +40,6 @@ from pathlib import Path
 # 1.5 percentage points. Intent accuracy is scored over 100 rows, so a single
 # query is worth 1.0pp; a narrower buffer could not absorb even one query flipping.
 RATCHET_BUFFER = 0.015
-
-DEFAULT_CSV = max(glob.glob("eval/results_*.csv"), default="eval/results_20260811_1335.csv")
 
 THRESHOLDS: dict[str, tuple[str, float]] = {
     "intent_accuracy":      (">=", 0.90),
@@ -128,8 +128,8 @@ def main() -> int:
         description="Verify eval results against EVAL.md thresholds or a baseline run."
     )
     parser.add_argument(
-        "csv_path", nargs="?", default=DEFAULT_CSV,
-        help="Results CSV to score (default: most recent eval/results_*.csv)",
+        "csv_path",
+        help="Results CSV to score, e.g. eval/results_YYYYMMDD_HHMM.csv",
     )
     parser.add_argument(
         "--baseline", default=None,
