@@ -23,10 +23,10 @@ Each customer message passes through five states in sequence:
    off-topic flag.
 2. **RouteState** (pure Python, no LLM): maps ClassifyOutput to a RoutingDecision
    enum value using priority rules. Unknown intent routes to a clarifying question.
-   Most injection attempts are classified as `intent="escalate"` and route to
-   escalation directly. Three known cases (ADV-001, ADV-002, ADV-004) classify as
-   `unknown` and route to a clarifying question instead; see Known constraints
-   below for details.
+   Injection attempts do not follow a single path. Of the five in the golden set,
+   two route to escalation, one is refused by the off-topic rule, and two
+   (ADV-002, ADV-004) classify as `unknown` and receive a clarifying question;
+   see Known constraints below.
 3. **ActState**: calls Python tool functions directly for billing, account, and
    technical paths; invokes a gpt-4o Foundry agent with file_search for info queries.
 4. **EscalateState** (gpt-4o Foundry agent): assembles and persists a human handoff
@@ -44,11 +44,11 @@ Each customer message passes through five states in sequence:
 
 RouteState is the only stateless, model-free component. It applies priority rules
 to map ClassifyOutput to a RoutingDecision enum value. Unknown intent routes to a
-clarifying question. Most injection attempts are classified as `intent="escalate"`
-and route to escalation directly. Three known cases (ADV-001, ADV-002, ADV-004)
-classify as `unknown` and route to a clarifying question instead; see Known
-constraints below for details. Neither path complies with the injection, and a
-regression test pins that behaviour for both classifier outcomes.
+clarifying question. Injection attempts do not follow a single path: of the five in
+the golden set, two route to escalation, one is refused because the off-topic rule
+outranks intent, and two (ADV-002, ADV-004) classify as `unknown` and receive a
+clarifying question. No path complies with the injection, and a regression test pins
+that for both classifier outcomes.
 
 ## Quick start
 
@@ -120,17 +120,17 @@ Figures are from run 5 (2026-08-23); intent accuracy is one query below run 4 an
 tool selection half a point below, within the variance described in
 [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
-Intent accuracy uses exact label matching. Most injection attempts are classified
-as `intent="escalate"` and route directly to a human agent. Two (ADV-002, ADV-004)
+Intent accuracy uses exact label matching. Of the five injection attempts, two route
+directly to a human agent and one is refused as off-topic. Two (ADV-002, ADV-004)
 are classified as `intent="unknown"` in every run measured so far and route to
 a clarifying question instead. A third (ADV-001) classified as `unknown` in the
 2026-08-11 run and `escalate` in every run since, on identical input, which is
 why escalation recall moved from 78.6% (FAIL) to 85.7% (PASS) between the first two
-runs with no code or prompt change. The agent asks for clarification rather than
-complying in every case, so the operational outcome is safe either way, but on a
-14-row escalation sample a single classification flip moves recall by roughly 7
-points. See [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md) for the run-to-run
-variance discussion before citing these figures.
+runs with no code or prompt change. No route complies with the injection, so the
+operational outcome is safe either way, but on a 14-row escalation sample a single
+classification flip moves recall by roughly 7 points. See
+[`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md) for the run-to-run variance
+discussion before citing these figures.
 
 Remaining intent failures are hard adversarial cases (extreme vagueness,
 multi-intent queries, abusive phrasing) and two genuine boundary ambiguities
@@ -153,11 +153,12 @@ in `.env` to point to supported model deployments.
 
 **Intent accuracy ceiling:** Further refinement of the classifier prompt risks
 regressions on boundary cases. Injection attempts are never complied with: they
-route either to escalation or to a clarifying question, and a regression test pins
-this for both classifier outcomes. The cases that route to clarification rather than
-escalation are counted as escalation-recall false negatives; that count varies between
-runs (3 on 2026-08-11, 2 in each of the three runs since) because one query classifies
-non-deterministically, which is why the recall figure should be read as a range.
+route to escalation, to a refusal, or to a clarifying question, and a regression test
+pins this for both classifier outcomes. The cases that route to clarification rather
+than escalation are counted as escalation-recall false negatives; that count was 3 on
+2026-08-11 and 2 in every run since, because ADV-001 flipped from `unknown` to
+`escalate` and has stayed there. Recall should still be read as a range given the
+sample size.
 
 **No identity verification:** account IDs are accepted from customer messages without authentication.
 
