@@ -424,6 +424,32 @@ class TestRespondStateBuildAgentPrompt:
         prompt = state._build_agent_prompt(context)
         assert "ESC-20260513-143023-9999" in prompt
 
+    def test_failed_escalation_not_reported_as_escalated(
+        self, state: RespondState, session: SessionState
+    ) -> None:
+        """A ticket that failed to persist must not be presented to the agent as escalated.
+
+        Sets ticket alongside success=False, which create_escalation_ticket never
+        produces (persistence_failed returns ticket=None). That is deliberate: the
+        prompt must gate on success, not on ticket presence, so this still fails if
+        the guard is later rewritten to check for a ticket.
+        """
+        context = StateContext(
+            session_state=session,
+            customer_message="I want to speak to a human.",
+            routing_decision=RoutingDecision.SKIP_TO_ESCALATE,
+            act_output=None,
+            escalate_output=CreateEscalationTicketResult(
+                success=False,
+                ticket=_ticket(),
+                error_code="persistence_failed",
+            ),
+        )
+        prompt = state._build_agent_prompt(context)
+        assert "Escalation to human agent: no" in prompt
+        assert "could not be completed" in prompt
+        assert "ESC-20260513-143023-9999" not in prompt
+
     def test_tool_results_json_included_in_prompt(
         self, state: RespondState, session: SessionState
     ) -> None:

@@ -191,12 +191,19 @@ class RespondState(BaseState[StateContext, RespondOutput]):
             lines.append("Resolution status: not attempted")
 
         escalate_output = context.escalate_output
-        escalated = escalate_output is not None
+        escalated = escalate_output is not None and escalate_output.success
         lines.append(f"Escalation to human agent: {'yes' if escalated else 'no'}")
-        if escalated and escalate_output.success and escalate_output.ticket is not None:
+        if escalated and escalate_output.ticket is not None:
             lines.append(
                 f"Escalation reference number: {escalate_output.ticket.escalation_id}. "
                 "Include this reference number in your message to the customer."
+            )
+        elif escalate_output is not None and not escalate_output.success:
+            lines.append(
+                "Escalation was attempted but could not be completed, so no reference "
+                "number exists. Tell the customer their request could not be handed to a "
+                "human agent automatically and ask them to contact support directly. Do "
+                "not promise a callback and do not say anyone will follow up."
             )
 
         lines.append("")
