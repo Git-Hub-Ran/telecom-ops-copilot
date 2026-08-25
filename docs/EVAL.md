@@ -271,6 +271,18 @@ matching any of those conditions needs an eval run and a review of the resulting
 metrics before merge. The committed results CSVs and `eval/BASELINE_NOTES.md` are
 the record of those runs.
 
+### When a change cannot affect the measurement
+
+The re-run list covers code that can change what the eval measures. A change that
+alters only a path no golden-set row reaches does not require a re-run, on two
+conditions. The exemption must be demonstrated from run data, not argued from
+reading the code, and it must be recorded in `eval/BASELINE_NOTES.md` beside the run
+it applies to. An exemption argued only from the code is not acceptable: the reason
+the re-run rule exists is that reading the code is how regressions get missed.
+
+Exemptions taken so far are recorded in `eval/BASELINE_NOTES.md`. Treat the absence
+of a recorded justification as an unremarked skip rather than a considered decision.
+
 ## What this evaluation does NOT cover
 
 Acknowledged limitations of this eval (not failures, just scope):

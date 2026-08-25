@@ -170,6 +170,16 @@ state run 5 was scored against, so a further run would reproduce a measurement a
 held. This is a deliberate decision, not an omission. It does not apply to any future
 change that lands a prompt state no committed run has measured.
 
+A second exemption was taken on the same date for the respond-prompt escalation fix
+(commit 461c971), which changed how `_build_agent_prompt` reports escalation status.
+It alters exactly one branch: the text sent to the respond agent when an escalation
+ticket fails to persist. Across every committed run, all rows that reached
+EscalateState produced a ticket, and run 6's structured logs record
+`ticket_success: true` on all 13 escalations with no error codes, so that branch has
+never executed during an eval. The change cannot move any metric until a golden row
+triggers a persistence failure, which none does. See "When a change cannot affect the
+measurement" in docs/EVAL.md for the conditions this exemption is claimed under.
+
 Three `citation_dropped` events fired, the most in any run: `kb/internet-plans/05-internet-100.md`,
 `kb/internet-plans/08-fiber-1000.md`, and `kb/04-unlimited.md`. All three invent a
 directory or a numeric prefix while getting the filename stem right, and
