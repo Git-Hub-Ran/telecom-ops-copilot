@@ -21,7 +21,7 @@ from azure.ai.agents.models import MessageRole
 from src.orchestrator.agents.factory import AgentFactory
 from src.orchestrator.models import RespondOutput, RoutingDecision, StateContext
 from src.orchestrator.observability.structured import StructuredLogger
-from src.orchestrator.states.base import BaseState
+from src.orchestrator.states.base import BaseState, strip_code_fence
 
 _REFUSE_MESSAGE = (
     "I can only assist with TelSano telecom service questions. "
@@ -129,10 +129,7 @@ class RespondState(BaseState[StateContext, RespondOutput]):
         raw_json = ""
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, content)
-            raw_json = raw_json.strip()
-            if raw_json.startswith("```"):
-                raw_json = raw_json.split("\n", 1)[1]
-                raw_json = raw_json.rsplit("```", 1)[0].strip()
+            raw_json = strip_code_fence(raw_json)
             data = json.loads(raw_json)
             return self._build_output(context, data)
         except Exception as exc:

@@ -23,7 +23,7 @@ from src.orchestrator.models import (
     StateContext,
 )
 from src.orchestrator.observability.structured import StructuredLogger
-from src.orchestrator.states.base import BaseState
+from src.orchestrator.states.base import BaseState, strip_code_fence
 from src.tools.escalation import CreateEscalationTicketResult, create_escalation_ticket
 
 _AGENT_FALLBACK_SUMMARY = "Agent unavailable - manual review required."
@@ -105,10 +105,7 @@ class EscalateState(BaseState[StateContext, CreateEscalationTicketResult]):
         raw_json = ""
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, content)
-            raw_json = raw_json.strip()
-            if raw_json.startswith("```"):
-                raw_json = raw_json.split("\n", 1)[1]
-                raw_json = raw_json.rsplit("```", 1)[0].strip()
+            raw_json = strip_code_fence(raw_json)
             data = json.loads(raw_json)
             summary: str = data["summary"]
             suggested_next_action: str = data["suggested_next_action"]

@@ -28,7 +28,7 @@ from src.orchestrator.models import (
 )
 from src.orchestrator.observability.structured import StructuredLogger, log_tool_call
 from src.config import PROJECT_ROOT, get_config
-from src.orchestrator.states.base import BaseState
+from src.orchestrator.states.base import BaseState, strip_code_fence
 from src.tools.billing import GetBillingInfoResult, get_billing_info
 from src.tools.customer import get_customer_account
 from src.tools.diagnostic import run_speed_diagnostic
@@ -439,10 +439,7 @@ class ActState(BaseState[StateContext, ActOutput]):
             raw_json = await asyncio.to_thread(
                 self._invoke_agent_for_kb, content
             )
-            raw_json = raw_json.strip()
-            if raw_json.startswith("```"):
-                raw_json = raw_json.split("\n", 1)[1]
-                raw_json = raw_json.rsplit("```", 1)[0].strip()
+            raw_json = strip_code_fence(raw_json)
             data = json.loads(raw_json)
             parsed = [
                 KBCitation(

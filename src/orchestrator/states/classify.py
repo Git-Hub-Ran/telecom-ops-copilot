@@ -20,7 +20,7 @@ from src.orchestrator.observability.structured import (
     StructuredLogger,
     log_classification_result,
 )
-from src.orchestrator.states.base import BaseState
+from src.orchestrator.states.base import BaseState, strip_code_fence
 
 
 def _fallback_output() -> ClassifyOutput:
@@ -117,10 +117,7 @@ class ClassifyState(BaseState[StateContext, ClassifyOutput]):
 
         try:
             raw_json = await asyncio.to_thread(self._invoke_agent, agent.id, content)
-            raw_json = raw_json.strip()
-            if raw_json.startswith("```"):
-                raw_json = raw_json.split("\n", 1)[1]
-                raw_json = raw_json.rsplit("```", 1)[0].strip()
+            raw_json = strip_code_fence(raw_json)
             result = ClassifyOutput.model_validate_json(raw_json)
         except Exception as exc:
             self._logger.log_event(

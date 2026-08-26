@@ -12,6 +12,20 @@ InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 
 
+def strip_code_fence(raw: str) -> str:
+    """Return `raw` stripped of whitespace and of a wrapping Markdown code fence.
+
+    Agents are instructed to return bare JSON but sometimes wrap it in a ```json
+    fence. Every state that parses an agent response calls this before handing the
+    text to a JSON parser.
+    """
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1]
+        text = text.rsplit("```", 1)[0].strip()
+    return text
+
+
 class BaseState(ABC, Generic[InputT, OutputT]):
     """Abstract base class for all orchestrator states.
 
