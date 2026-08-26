@@ -28,6 +28,13 @@ shell commands, and other important information, read the current plan:
   Line numbers go stale on any edit above them, including edits made
   in an unrelated commit, and a citation that drifts back into
   correctness by chance is not a reference anyone can trust.
+- When verifying a claim across files, read the files rather than pattern
+  matching them. Grep finds the phrasings you already thought of, not the
+  ones you did not: sweeps for "~18s" and "17 to 18s" both missed
+  "approximately 20 seconds". A reported finding names instances, not all
+  of them: findings citing three places have repeatedly turned out to have
+  five or six. Use grep to find candidates and a report to start from,
+  never to conclude that a class of claim is fully corrected.
 - Never use the NotebookEdit tool on `.ipynb` files in this repo.
   Notebook outputs are committed here, and NotebookEdit strips the
   outputs of every cell it touches and nulls `execution_count`.
