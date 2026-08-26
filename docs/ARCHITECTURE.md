@@ -322,11 +322,17 @@ customer-facing message distinguishing an offer from a filed ticket.
 GitHub-flavored Markdown so KB answers can use bullets and bold. Image syntax is
 removed before rendering because Streamlit fetches the URL when the message
 displays, which would leak the viewer's IP and timing to whoever chose the URL.
-Link syntax is left intact: a link requires a deliberate click rather than firing
-on render, so it is a phishing consideration rather than a beacon. A UI that
-renders agent text in a context where clicks are cheaper, or that shows these
-messages to someone other than the customer who prompted them, should revisit
-this.
+All four image forms are stripped, not only the inline `![alt](url)`. The
+reference forms were tested against a running Streamlit instance: `![alt][ref]`
+with its definition line, and bare `![alt]`, both caused the browser to fetch
+the URL. Narrowing this back to inline-only would reopen a live beacon, not a
+theoretical one. The definitions are removed as well, since they are what
+resolve those forms. Inline link syntax is left intact: a link requires a
+deliberate click rather than firing on render, so it is a phishing consideration
+rather than a beacon. Reference-style links break as a side effect of removing
+definitions. A UI that renders agent text in a context where clicks are cheaper,
+or that shows these messages to someone other than the customer who prompted
+them, should revisit this.
 
 ---
 
