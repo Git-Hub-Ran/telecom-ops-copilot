@@ -266,6 +266,24 @@ class TestActStateHappyPaths:
         assert result.kb_citations[0].section == "Late Fees"
         assert result.tools_called == []
 
+    @pytest.mark.asyncio
+    async def test_fenced_json_response_parses(
+        self, state: ActState, session: SessionState
+    ) -> None:
+        """A response wrapped in a markdown code fence still parses.
+
+        Pins that ActState routes the agent response through strip_code_fence;
+        the fence mechanics themselves are covered in test_base.py.
+        """
+        context = _make_context(session, RoutingDecision.INFO_PATH)
+        fenced = "```json\n" + _INFO_JSON + "\n```"
+
+        with patch.object(state, "_invoke_agent_for_kb", return_value=fenced):
+            result = await state.run(context)
+
+        assert result.resolution_status == "resolved"
+        assert len(result.kb_citations) == 2
+
 
 # ---------------------------------------------------------------------------
 # TestActStateToolErrorModes

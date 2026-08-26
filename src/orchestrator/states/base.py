@@ -4,12 +4,18 @@ All states in the orchestrator (Classify, Route, Act, Escalate, Respond) inherit
 from BaseState and implement the async run() method.
 """
 
+import re
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 # Generic type variables for input context and output result
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
+
+# Opening fence with an optional language tag, and the closing fence. Matched
+# independently so a single-line fence is handled the same as a multi-line one.
+_FENCE_OPEN = re.compile(r"^```[A-Za-z0-9_+-]*\s*")
+_FENCE_CLOSE = re.compile(r"\s*```$")
 
 
 def strip_code_fence(raw: str) -> str:
@@ -18,12 +24,19 @@ def strip_code_fence(raw: str) -> str:
     Agents are instructed to return bare JSON but sometimes wrap it in a ```json
     fence. Every state that parses an agent response calls this before handing the
     text to a JSON parser.
+
+    Handles the fence opening and closing separately rather than splitting on the
+    first newline, so a fence written on one line is stripped like any other. The
+    newline-splitting version raised IndexError on those, and because every caller
+    wraps this in a broad except, a parseable response was silently discarded in
+    favour of the fallback path.
     """
     text = raw.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1]
-        text = text.rsplit("```", 1)[0].strip()
-    return text
+    if not text.startswith("```"):
+        return text
+    text = _FENCE_OPEN.sub("", text)
+    text = _FENCE_CLOSE.sub("", text)
+    return text.strip()
 
 
 class BaseState(ABC, Generic[InputT, OutputT]):
