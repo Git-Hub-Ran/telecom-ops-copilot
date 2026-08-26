@@ -24,8 +24,8 @@ prompt that was reverted afterwards, so it is not the baseline; see the run 6 se
 below. Intent accuracy is one query below run 4 (88%); tool
 selection is half a point below (82.0%), one row having moved from 0.5 to 0.0.
 Both sit within the run-to-run variance documented below. Escalation figures are
-unchanged from run 4 but vary between runs; see "Run-to-run variance on
-escalation metrics" below before citing them.
+unchanged from run 4 but vary between runs; see "Classifier non-determinism and
+run-to-run variance" below before citing them.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
 computed; the grounding_score column is empty in every committed results CSV.
@@ -187,10 +187,11 @@ directory or a numeric prefix while getting the filename stem right, and
 reproduces. All 22 `act_kb_result` events still resolved and no row lost every
 citation, so the total-fabrication condition from ff7c75b remains unexercised.
 
-## Run-to-run variance on escalation metrics
+## Classifier non-determinism and run-to-run variance
 
-Two consecutive runs on the same golden set and code produced different escalation
-metrics due to classifier non-determinism on ambiguous rows:
+The same query can be classified differently on two runs of identical code
+(classifier non-determinism). On a 14-row escalation sample that is enough to move
+the headline percentages, so single-run figures should be read as a range:
 
 | Run | Date | Precision | Recall |
 |---|---|---|---|
@@ -205,22 +206,47 @@ Run 6 ran against a classifier prompt that was reverted afterwards; see the run 
 section above. Its escalation figures are identical to run 5 regardless.
 
 Across six runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
-Run 3 differs from run 2 only in that ADV-020 stopped escalating, removing one
-false positive; no code touching that path changed between them.
 
-The difference stems from ADV-001, an injection attempt that classified as `unknown`
-in run 1 and `escalate` in run 2, identical input and prompt. With a 14-row escalation
-sample, a single classification flip moves recall by roughly 7 percentage points.
+**The demonstration is run 1 to run 2.** ADV-001, an injection attempt, classified
+as `unknown` in run 1 and `escalate` in run 2 on identical query text and an
+identical classifier prompt. Precision moved from 91.7% to 85.7%, recall from 78.6%
+to 85.7%. Two things did change between those runs and neither touches the
+comparison. Commit ccb2bc2 relabelled `expected_tools` on four ADV rows, which feeds
+tool selection rather than escalation, and `expected_escalation` is identical on all
+100 rows before and after. Commit 54c7808 made escalation persistence fail closed,
+which alters behaviour only when a ticket fails to persist, and no row in any
+committed run has hit that path.
 
-Run 2 clears the 80% recall target; run 1 does not. Both clear the 85% precision
-target, though run 2 clears it by 0.7 points rather than 6.7. The variance itself is
-the more important finding: single-run percentages on this sample size should be read
-as a range, not a point estimate. A defensible number requires several runs reported
-as a median or range.
+**Run 2 to run 3 is not a second demonstration.** ADV-020 stopped escalating,
+removing one false positive, but commit 22d3a18 replaced the classifier prompt
+examples with disjoint topics at 12:27 UTC and run 3 started at 12:29 UTC, two
+minutes later. ADV-020's flip is a classification change, so the prompt change is a
+live alternative explanation and this pair cannot be attributed to non-determinism.
+Separately, ADV-020 became a false positive in run 2 by routing to `info_path` and
+then escalating because ActState returned unresolved, which is a different failure
+mode from a classifier flip.
 
-Run 2 also introduced a second false positive, ADV-020, which routed to `info_path`
-and then escalated because ActState returned unresolved. That is a separate failure
-mode from the classifier drift and is not explained by it.
+**Rows flip in both directions on identical code.** STD-031, "What promotions am I
+enrolled in right now?", classified as `account` in run 3, `info` in run 4,
+`account` in run 5, and `info` in run 6. No commit touched `prompts.py`,
+`classify.py`, `route.py`, or `golden_set.csv` between run 3 and run 4. Those flips
+did not move escalation, which held at 92.3% and 85.7% across runs 3 through 6, but
+they show the mechanism with every other variable held fixed.
+
+**The fragility argument is arithmetic, not observation.** Precision and recall are
+scored over roughly 14 rows, so one row flipping moves recall by about 7 percentage
+points. Run 2 clears the 80% recall target and run 1 does not, on the same code.
+Both clear the 85% precision target, run 2 by 0.7 points rather than 6.7. A
+defensible number requires several runs reported as a median or range.
+
+**Temperature is not pinned.** The Azure AI Agents SDK accepts `temperature` and
+`top_p` when creating an agent and again when creating a run, including through
+`create_and_process`, which is what all four states call. This code passes neither
+at either level, so every agent runs at the service default. Pinning it would narrow
+the spread but not remove it: the SDK exposes no seed parameter, so runs are not
+reproducible even at temperature 0. A temperature set at agent creation also only
+takes effect on a freshly created agent, since agents are fetched by name and
+reused.
 
 ## Known failure categories
 
