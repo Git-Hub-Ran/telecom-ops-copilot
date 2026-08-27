@@ -46,15 +46,42 @@ For queries that produce a policy answer, is the answer grounded in retrieved KB
 Why grounding matters: an answer can sound right and be completely wrong. Grounding faithfulness measures whether the claims in the answer are supported by the actual KB content the agent retrieved.
 
 **Not computed.** Grounding faithfulness has not been computed in any run to date.
-RAGAS dependency resolution succeeds on Python 3.14, but installation fails because
-scikit-network (a transitive dependency) ships no cp314 Windows wheel; its source
-build requires MS C++ Build Tools 14.0+, which are not present in this development
-environment. Computing this metric requires either those build tools, a Python
-version with a prebuilt scikit-network wheel, or running the eval notebook in Google
-Colab as originally specified in docs/PLAN.md. The grounding_score column is
-retained (and empty) in all committed results CSVs to document this gap rather than
-remove the column silently. A Foundry-native faithfulness scorer was also planned as
-a cross-check; it has not been run either.
+Three things block it, and only the first is an installation problem.
+
+*Install environment.* RAGAS dependency resolution succeeds on Python 3.14, but
+installation fails because scikit-network (a transitive dependency) ships no cp314
+Windows wheel; its source build requires MS C++ Build Tools 14.0+, which are not
+present in this development environment. Clearing this needs either those build
+tools, a Python version with a prebuilt scikit-network wheel, or running the eval
+notebook in Google Colab as originally specified in docs/PLAN.md.
+
+*Retrieved text never reaches the results CSV.* The notebook passes
+`contexts=json.loads(row["actual_citations"])` to RAGAS, and that column holds
+doc_id path strings such as `kb/about/01-about-telsano.md`. Faithfulness scores an
+answer against the text it was supposedly grounded in, so scoring against filenames
+measures nothing: the metric would run, produce a number, and the number would be
+meaningless. That failure is silent, which makes it the more dangerous of the three.
+`KBCitation.text_content` already exists for this passage and ACT_SYSTEM_PROMPT
+instructs the act agent to copy it verbatim, but RespondState projects citations
+down to `[c.doc_id for c in act_output.kb_citations]`, so the text is dropped before
+RespondOutput and never reaches a results column. How reliably the agent fills that
+field is unknown, because nothing persists it; plumbing it through is also what would
+make it checkable.
+
+*A judge model.* RAGAS faithfulness calls an LLM to score each answer. The notebook
+cell expects OPENAI_API_KEY and defaults to OpenAI; using Azure OpenAI instead means
+configuring ragas.llms before calling evaluate(). No committed run has had a key set.
+
+Clearing all three would still leave the metric narrow. Only rows that produced
+citations are scored, which is about a fifth of the golden set and almost entirely
+info-path queries: run 6 scored 21 of 100 rows, 18 of them info. The remaining rows
+answer from tool output rather than KB retrieval, so there is nothing for
+faithfulness to check. Any grounding figure should be read as covering the info path,
+not the pipeline.
+
+The grounding_score column is retained (and empty) in all committed results CSVs to
+document this gap rather than remove the column silently. A Foundry-native
+faithfulness scorer was also planned as a cross-check; it has not been run either.
 
 ### 4. Escalation precision and recall
 
