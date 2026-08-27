@@ -12,13 +12,12 @@
 
 ## Platform decision
 
-Azure AI Foundry was chosen over AWS Bedrock AgentCore and Google Vertex AI Agent Engine for five practical reasons:
+Azure AI Foundry was chosen over AWS Bedrock AgentCore and Google Vertex AI Agent Engine for four practical reasons:
 
 1. **Existing Azure tenancy.** The project lives in an Azure subscription already in use, avoiding cross-cloud credential and billing complexity.
 2. **file\_search maturity.** Foundry's built-in vector store and file\_search tool required no additional infrastructure for KB retrieval. Bedrock Knowledge Bases and Vertex Search are comparable but would have required separate setup.
 3. **Integrated eval tooling.** Azure AI Foundry provides a built-in prompt evaluation and tracing interface that complements the golden-set eval framework in this project.
-4. **Structured output contracts.** Each state exchanges JSON with the next through a Pydantic-validated model (`ClassifyOutput`, `ActOutput`, `RespondOutput`). Agent system prompts enforce JSON-only responses, and each state parses defensively: markdown code fences are stripped and a parse failure falls back to a documented safe path rather than propagating. This keeps the contract between states explicit and testable without a live agent.
-5. **Cost model.** Foundry bills per token on the underlying model (gpt-4o-mini, gpt-4o) with no separate agent orchestration fee. This matters for a pipeline making two to four sequential agent calls per turn, where any per-invocation orchestration surcharge would compound across every conversation.
+4. **Per-invocation cost sensitivity.** A turn makes one to four sequential agent calls depending on the path, so any per-invocation orchestration surcharge would compound across every conversation rather than being paid once. Foundry bills per token on the underlying model (gpt-4o-mini, gpt-4o). No pricing comparison against Bedrock or Vertex was carried out for this project, so this is a statement about what the architecture is sensitive to, not a claim that Foundry is cheaper.
 
 The Foundry Agents API does introduce a latency cost from its polling model (4+ HTTP round trips per agent run). Bedrock and Vertex both offer streaming-first agent runtimes that would be better choices if sub-5s p95 latency is a hard requirement. See the latency constraint section in [`eval/BASELINE_NOTES.md`](../eval/BASELINE_NOTES.md).
 

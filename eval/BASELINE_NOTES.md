@@ -354,8 +354,15 @@ far enough into the tail not to move p95, but it does distort any mean.
 
 Root cause: the Foundry Agents API polling model requires 4+ HTTP round trips per
 agent run (create thread, create message, start run, poll until complete, fetch
-message). Each query goes through 2-3 sequential agent runs. The 5s p95 target
-cannot be met with this architecture.
+message). A turn goes through one to four sequential agent runs depending on the
+path. The 5s p95 target cannot be met with this architecture, though the target is
+not missed uniformly: the two canned paths (refuse_off_topic and
+ask_clarifying_question) invoke only the classifier and complete in about 3s, inside
+the target, while info_path runs up to four agents and sets the tail. The committed
+latency figures cannot speak for the billing shortcut, because the notebook always
+calls RespondState and so never exercises the one-call billing path that
+`prepared_response` produces in production; see "The notebook reconstructs the
+pipeline" in docs/EVAL.md.
 
 Reaching sub-5s p95 would require replacing the polling-based Foundry Agents API
 with streaming Azure OpenAI Chat Completions for agents that do not need

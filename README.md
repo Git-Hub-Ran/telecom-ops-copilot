@@ -140,9 +140,12 @@ intent misclassification. Full failure analysis in
 
 ## Known constraints
 
-**Latency:** p50 is approximately 8s; p95 is approximately 14s. Each query requires
-2-3 sequential Foundry agent runs, and each run involves polling until completion
-(create thread, post message, start run, poll, fetch response). The 5s p95 target
+**Latency:** p50 is approximately 8s; p95 is approximately 14s. A turn requires one
+to four sequential Foundry agent runs depending on the path, and each run involves
+polling until completion (create thread, post message, start run, poll, fetch
+response). The spread is what separates p50 from p95: a refusal or clarifying
+question needs only the classifier and returns in about 3s, inside the target, while
+an unresolved KB query runs four agents in sequence. The 5s p95 target
 requires replacing the polling Agents API with streaming Azure OpenAI Chat Completions
 for agents that do not use file_search. This is a documented architectural tradeoff,
 not a tuning problem.

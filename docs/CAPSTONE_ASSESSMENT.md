@@ -14,7 +14,7 @@ KB citations shown to the customer are taken from the validated act_output set, 
 
 ## 4. What would break under real user load?
 
-Streamlit `st.session_state` is in-process memory: multiple concurrent users share a single Python process, and a restart loses all session state. Each query makes two to three sequential Foundry agent runs, each requiring four or more HTTP round trips under the polling model; there is no parallelism within a query and no connection pooling at the Foundry SDK level, so throughput is bounded by round-trip latency multiplied by the number of inflight queries. Every query creates a new Foundry thread via `client.threads.create()` with no cleanup: at scale, thread accumulation will hit Foundry project quotas. Escalation tickets are appended to a local `data/escalations.jsonl` file, which is not durable across restarts and is not readable by a separate fulfilment service.
+Streamlit `st.session_state` is in-process memory: multiple concurrent users share a single Python process, and a restart loses all session state. Each query makes one to four sequential Foundry agent runs depending on the path, each requiring four or more HTTP round trips under the polling model; there is no parallelism within a query and no connection pooling at the Foundry SDK level, so throughput is bounded by round-trip latency multiplied by the number of inflight queries. Every query creates a new Foundry thread via `client.threads.create()` with no cleanup: at scale, thread accumulation will hit Foundry project quotas. Escalation tickets are appended to a local `data/escalations.jsonl` file, which is not durable across restarts and is not readable by a separate fulfilment service.
 
 ## 5. What permissions and data access should be restricted?
 
