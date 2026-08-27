@@ -131,18 +131,35 @@ def _first_error(records: list[ToolCallRecord]) -> str | None:
 
 
 @lru_cache(maxsize=1)
-def _kb_index() -> tuple[frozenset[str], dict[str, str]]:
-    """Return (canonical KB paths, basename to canonical path lookup).
+def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str]]:
+    """Return (canonical KB paths, basename lookup, ambiguous basenames).
 
     Cached so the kb/ directory is scanned once per process on first use rather
-    than as an import side effect. KB basenames are unique, so a doc_id carrying
-    only a basename resolves unambiguously to one canonical path.
+    than as an import side effect.
+
+    Basenames are expected to be unique across kb/, and a test asserts that for
+    the committed tree. Nothing stops someone adding kb/mobile-plans/01-essential.md
+    beside kb/plans/01-essential.md, though, and a plain dict comprehension would
+    silently keep whichever path rglob yielded last, resolving a bare basename to
+    an arbitrary one of the two. Any basename claimed by more than one file is
+    therefore left out of the lookup and reported instead, so an ambiguous doc_id
+    is dropped rather than resolved to the wrong document. Canonical full paths are
+    unaffected: they resolve against the path set, which collisions do not touch.
     """
     paths = {
         p.relative_to(PROJECT_ROOT).as_posix()
         for p in (PROJECT_ROOT / "kb").rglob("*.md")
     }
-    return frozenset(paths), {p.rsplit("/", 1)[-1]: p for p in paths}
+    by_basename: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for path in sorted(paths):
+        name = path.rsplit("/", 1)[-1]
+        if name in by_basename or name in ambiguous:
+            ambiguous.add(name)
+            by_basename.pop(name, None)
+            continue
+        by_basename[name] = path
+    return frozenset(paths), by_basename, frozenset(ambiguous)
 
 
 def _validate_citations(
@@ -152,9 +169,14 @@ def _validate_citations(
 
     The act agent returns doc_id verbatim from its own output, which in practice
     mixes canonical paths, bare basenames, and paths for documents that do not
-    exist. A doc_id whose basename matches a real KB file is normalised; anything
-    else is dropped so the customer is never shown a citation to a document that
-    cannot be retrieved.
+    exist. A doc_id whose basename matches exactly one real KB file is normalised;
+    anything else is dropped so the customer is never shown a citation to a document
+    that cannot be retrieved.
+
+    Dropped citations are logged with a reason: "not_found_in_kb" when no KB file
+    matches, and "ambiguous_basename" when more than one does. The second means the
+    document exists but the doc_id does not say which, so resolving it would risk
+    citing the wrong file.
 
     Args:
         citations: Citations parsed from the act agent JSON response.
@@ -162,15 +184,17 @@ def _validate_citations(
         correlation_id: Tracing ID for log events.
 
     Returns:
-        Citations with canonical doc_ids, excluding any that match no KB file.
+        Citations with canonical doc_ids, excluding any that match no KB file
+        and any whose basename is claimed by more than one.
     """
-    kb_paths, kb_by_basename = _kb_index()
+    kb_paths, kb_by_basename, ambiguous_basenames = _kb_index()
     validated: list[KBCitation] = []
     for citation in citations:
         if citation.doc_id in kb_paths:
             validated.append(citation)
             continue
-        canonical = kb_by_basename.get(citation.doc_id.rsplit("/", 1)[-1])
+        basename = citation.doc_id.rsplit("/", 1)[-1]
+        canonical = kb_by_basename.get(basename)
         if canonical is not None:
             validated.append(citation.model_copy(update={"doc_id": canonical}))
             continue
@@ -180,7 +204,11 @@ def _validate_citations(
             correlation_id=correlation_id,
             level="warn",
             doc_id=citation.doc_id,
-            reason="not_found_in_kb",
+            reason=(
+                "ambiguous_basename"
+                if basename in ambiguous_basenames
+                else "not_found_in_kb"
+            ),
         )
     return validated
 

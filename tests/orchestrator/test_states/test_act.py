@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -661,6 +662,19 @@ def _citation(doc_id: str) -> KBCitation:
     return KBCitation(doc_id=doc_id, section="Overview", relevance="relevant")
 
 
+def _write_colliding_kb(tmp_path: Path) -> None:
+    """Build a kb/ tree where 01-essential.md is claimed by two folders.
+
+    02-connect.md is unique and present so the tests can show that a collision
+    degrades only the colliding name, not the rest of the index.
+    """
+    for folder in ("plans", "mobile-plans"):
+        directory = tmp_path / "kb" / folder
+        directory.mkdir(parents=True)
+        (directory / "01-essential.md").write_text(folder, encoding="utf-8")
+    (tmp_path / "kb" / "plans" / "02-connect.md").write_text("connect", encoding="utf-8")
+
+
 class TestValidateCitations:
     """Tests for doc_id normalisation and fabricated-citation dropping."""
 
@@ -717,7 +731,64 @@ class TestValidateCitations:
 
     def test_kb_index_finds_committed_documents(self) -> None:
         """The KB index resolves against the real committed kb/ directory."""
-        paths, by_basename = _kb_index()
+        paths, by_basename, ambiguous = _kb_index()
         assert "kb/policies/02-late-fees.md" in paths
         assert by_basename["02-late-fees.md"] == "kb/policies/02-late-fees.md"
-        assert len(paths) == len(by_basename), "basenames must be unique"
+        assert not ambiguous, (
+            "KB basenames must be unique so a bare doc_id resolves to one file; "
+            f"claimed by more than one: {sorted(ambiguous)}"
+        )
+        assert len(paths) == len(by_basename)
+
+    def test_colliding_basename_is_left_out_of_the_lookup(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """A basename claimed by two files must not resolve to an arbitrary one."""
+        _write_colliding_kb(tmp_path)
+        monkeypatch.setattr("src.orchestrator.states.act.PROJECT_ROOT", tmp_path)
+        _kb_index.cache_clear()
+        try:
+            paths, by_basename, ambiguous = _kb_index()
+            assert ambiguous == frozenset({"01-essential.md"})
+            assert "01-essential.md" not in by_basename
+            # Canonical paths are unaffected; only the basename shortcut is lost.
+            assert "kb/plans/01-essential.md" in paths
+            assert "kb/mobile-plans/01-essential.md" in paths
+            assert by_basename["02-connect.md"] == "kb/plans/02-connect.md"
+        finally:
+            _kb_index.cache_clear()
+
+    def test_ambiguous_basename_citation_is_dropped_with_its_own_reason(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """An ambiguous doc_id is dropped rather than resolved to the wrong file."""
+        _write_colliding_kb(tmp_path)
+        monkeypatch.setattr("src.orchestrator.states.act.PROJECT_ROOT", tmp_path)
+        _kb_index.cache_clear()
+        try:
+            logger = MagicMock()
+            result = _validate_citations(
+                [_citation("01-essential.md")], logger, "corr-amb"
+            )
+            assert result == []
+            kwargs = logger.log_event.call_args.kwargs
+            assert kwargs["event_type"] == "citation_dropped"
+            assert kwargs["reason"] == "ambiguous_basename"
+            assert kwargs["doc_id"] == "01-essential.md"
+        finally:
+            _kb_index.cache_clear()
+
+    def test_canonical_path_still_resolves_despite_a_collision(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """A collision degrades the basename fallback only, not full paths."""
+        _write_colliding_kb(tmp_path)
+        monkeypatch.setattr("src.orchestrator.states.act.PROJECT_ROOT", tmp_path)
+        _kb_index.cache_clear()
+        try:
+            result = _validate_citations(
+                [_citation("kb/mobile-plans/01-essential.md")], MagicMock(), "corr-ok"
+            )
+            assert [c.doc_id for c in result] == ["kb/mobile-plans/01-essential.md"]
+        finally:
+            _kb_index.cache_clear()
