@@ -25,7 +25,10 @@ below. Intent accuracy is one query below run 4 (88%); tool
 selection is half a point below (82.0%), one row having moved from 0.5 to 0.0.
 Both sit within the run-to-run variance documented below. Escalation figures are
 unchanged from run 4 but vary between runs; see "Classifier non-determinism and
-run-to-run variance" below before citing them.
+run-to-run variance" below before citing them. Commit ff7c75b was itself reverted on
+August 28, 2026 in commit a0b01e1, after run 7 exercised it for the first time. The
+escalation figures in this table predate that revert and will move on run 8; see the
+run 7 section.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
 computed; the grounding_score column is empty in every committed results CSV.
@@ -200,6 +203,119 @@ directory or a numeric prefix while getting the filename stem right, and
 `kb/04-unlimited.md` is byte-identical to a run 5 fabrication, so the failure
 reproduces. All 22 `act_kb_result` events still resolved and no row lost every
 citation, so the total-fabrication condition from ff7c75b remains unexercised.
+
+## Run 7 (2026-08-28): the citation failures were never fabrication
+
+The headline finding is a negative one, and it reframes the citation story. Across
+every dropped doc_id any run has recorded, the model has not once named a document
+that does not exist. It named real documents and got their identifiers wrong, every
+time. Replaying the 14 dropped doc_ids from runs 5, 6 and 7 through the classifier
+added in commit 89ca8e5 yields 12 `identifier_mismatch` and 2 Foundry annotation
+artifacts, and zero `not_found_in_kb`. Runs 5, 6 and 7 are the only runs whose drops
+are recorded; run 4 notes that its own drops cannot be recovered from the CSV. The two
+run 3 paths named in the run 4 section as fabricated, `kb/03-connect.md` and
+`kb/plans/05-internet-100.md`, classify as `identifier_mismatch` as well. What these
+notes have called fabrication since run 4 is an identifier formatting problem. That
+is a materially different claim about the system: retrieval is finding the right
+documents, and the labelling of them is what breaks.
+
+A single `citation_dropped` reason code is what hid this. It covered both a doc_id
+naming a real document under a wrong numeric prefix and a doc_id naming nothing at
+all, so the logs could not separate them, and the more alarming reading was the one
+that stuck.
+
+### What the run tested
+
+Run 7 was expected to measure the em-dash removal from the classifier boundary rules
+(commit fb7d347). That change is inert. What the run exercised for the first time was
+the total-fabrication branch from commit ff7c75b, which run 6 had recorded as still
+unexercised. `citation_dropped` rose from 3 events in run 6 to 9 in run 7, spread
+across four queries.
+
+### The escalations it produced
+
+Three rows lost every citation and hit the branch: STD-008, STD-013 and STD-020. Each
+was marked unresolved, escalated, and had its answer replaced by a deflection carrying
+an escalation reference. All three are escalation false positives against an expected
+value of false.
+
+STD-017 also escalated and is not one of them. It failed in `_run_info_path` with a
+JSONDecodeError and reached the exception handler instead, and the doc_id in its logged
+snippet, `kb/policies/04-cancellation.md`, is a real KB file. Counting it with the
+fabrication rows overstates the branch's cost by a third. ADV-020 failed the same way.
+
+STD-029 is the control that settles what the branch cost. It mislabelled its doc_ids
+exactly like the others, `04-connect.md` and `04-unlimited.md`, but two of its four
+citations were already canonical, so it stayed resolved. It then answered the question
+correctly, and its content, the Essential to Connect and Unlimited upgrade paths and
+the Fiber 1000 technician visit, traces back to the two citations that were dropped
+rather than to the two that were kept. The model had retrieved the right material and
+misnamed the source.
+
+The four deflection texts cannot serve as evidence here, and it is worth saying so
+plainly because it is an easy mistake to make. They are generated after validation
+strips the citations, so an empty deflection is a consequence of the drop rather than
+an independent reading on whether the content was sound. STD-029 is the only row that
+shows what the model held before validation ran.
+
+### Why the branch was reverted
+
+Escalation precision paid for the branch and bought nothing. Three info rows went to a
+human because the model mislabelled its sources, in a run that contained no fabrication
+at all.
+
+The decisive argument is severity ordering. `_validate_citations` checks that a doc_id
+resolves. It never checks that the document supports the answer. So a mistyped real
+filename escalated, while a real but irrelevant doc_id, which is an actually ungrounded
+citation, passed silently and still does. The check punished the visible error and
+missed the dangerous one, which means it was not measuring what it was built to
+measure. That argument does not rest on the precision number and survives the
+fabrication rate changing.
+
+Showing a correct answer without sources is a better outcome for the customer than
+escalating to a human over source labelling.
+
+This is a decision and not a retreat. If fabrication rates rise later, the case for
+restoring this branch has to be made against the severity argument above rather than
+against a drop count. A check on citation relevance would address the failure this one
+was reaching for. A check on filename existence does not.
+
+### Changes made and what they owe the eval
+
+Commit 5077919 strips a leaked Foundry file_search annotation prefix from a doc_id
+before validation. The act agent sometimes echoes the platform's own citation marker
+into the field, producing ids such as `0†01-essential.md`, and the document named after
+the marker is real. Recovered ids are logged as `citation_recovered`, so a platform
+artifact stays distinguishable from a doc_id the model got wrong. This is claimed as
+exempt from a re-run on the same basis as the KB basename guard: replaying every doc_id
+recorded in runs 5, 6 and 7, the change alters the outcome of exactly two, both from
+run 7, and both from dropped to correctly resolved. It cannot lower a score. The
+exemption lapses if a run produces an annotation-prefixed id whose stripped form still
+fails to resolve.
+
+Commit a0b01e1 reverts the ff7c75b branch. This one does move scores. STD-008 and
+STD-013 stop escalating; STD-020 stops before the revert reaches it, because the
+normalisation already recovers both of its citations. No exemption is claimed and none
+is available. The escalation figures in "Final scores" must not be restated until run 8
+has measured this.
+
+Commit 89ca8e5 splits the drop reason. `not_found_in_kb` now means nothing in the KB
+matches even by stem and is the only model-output failure logged at warn.
+`identifier_mismatch` means the stem names exactly one real document, and logs at info.
+`ambiguous_basename` stays at warn because it is a defect in the committed kb/ tree
+rather than in the model's output. The stem comparison classifies a drop and never
+resolves one, so every citation that dropped before still drops.
+
+### Open after run 7
+
+STD-017 and ADV-020 still escalate on a JSONDecodeError from the act agent and are
+untouched by all three commits. Neither is diagnosable from run 7's logs:
+`raw_response_snippet` is capped at 200 characters and the two parse failures sit at
+offsets 833 and 525. Raising that cap is a prerequisite for working on them.
+
+The pre-validation `text_content` of a citation is parsed and then discarded without
+being logged. Had it been recorded, the deflection rows would have answered the content
+question directly instead of requiring STD-029 as a proxy.
 
 ## Classifier non-determinism and run-to-run variance
 
