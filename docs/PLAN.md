@@ -8,6 +8,14 @@ orchestration is a custom Python state machine not Microsoft Agent Framework; to
 are local Python functions not Azure Functions; the knowledge base has 17 documents
 in 4 folders, not 16 in 3.
 
+The body is left as it was written before the build. Do not correct a figure in it to
+match what shipped: a silent edit makes the surrounding text ambiguous, because a
+reader can no longer tell which claims are the plan and which are current. The KB
+count was edited that way once and had to be put back, leaving the diagram claiming
+17 documents while still showing Azure Functions, which never shipped. Deltas belong
+in the list above, or inline in the form "planned; shipped as X" where both halves
+stay visible.
+
 An AI agent that handles customer service inquiries for a fictional US telecom company (TelSano). The agent classifies customer intent, retrieves relevant policies through file search, calls internal tools for account data, and escalates complex cases with structured context.
 
 ---
@@ -90,7 +98,7 @@ State Machine Orchestrator  (Microsoft Agent Framework)
    v                                                    v
 +-----------------------------+      +------------------------------+
 | Azure AI Foundry Agent      |      | Azure Functions              |
-| - File search (17 KB docs)  |      | - get_customer_account       |
+| - File search (16 KB docs)  |      | - get_customer_account       |
 | - Agents per state          |      | - get_billing_info           |
 | - Tracing                   |      | - check_network_outage       |
 | - Content safety            |      | - run_speed_diagnostic       |
