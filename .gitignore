@@ -223,13 +223,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Eval output files (run results are local only; not committed to repo)
-eval/results_*.csv
-# Exception: committed baseline result for auditability
-!eval/results_20260807_1312.csv
-!eval/results_20260811_1335.csv
-!eval/results_20260818_1117.csv
-!eval/results_20260818_1229.csv
-!eval/results_20260819_1110.csv
-!eval/results_20260823_1802.csv
-!eval/results_20260824_0846.csv
+# Eval run results are committed, not ignored. Every replay-based re-run
+# exemption in eval/BASELINE_NOTES.md depends on replaying what a run produced,
+# and an exemption a clean checkout cannot reproduce is an assertion rather than
+# a demonstration. See the conditions in docs/EVAL.md (commit 7c3df92). This was
+# previously an ignore rule with a hand-maintained exception per run, which meant
+# a new run was committed only if someone remembered to exempt it.

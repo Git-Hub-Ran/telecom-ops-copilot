@@ -392,13 +392,23 @@ computed over the run and should not be read as a regression.
 
 ### Reproducibility of the replays
 
-Run 7's and run 8's results CSVs are not in the repository. `.gitignore` excludes
-`eval/results_*.csv`, and the CSVs from runs 1 to 6 are present only because they were
-committed before that rule was added. The replays recorded in this section and in the
-run 7 section were run against the structured logs and the local CSVs, so reproducing
-them from a clean checkout is not currently possible. That also limits any future
-exemption claimed on the basis of replaying every doc_id a run produced, which is the
-basis the KB basename guard and the annotation normalisation both used.
+Run 7's and run 8's results CSVs are now committed, and `.gitignore` no longer excludes
+`eval/results_*.csv`. The rule it replaced ignored every results file and re-admitted
+individual runs by name, so a run was committed only if someone remembered to add an
+exception, and runs 7 and 8 never were. Results are now committed by default.
+
+That makes every score in this file reproducible from a clean checkout. It does not
+make the citation replays reproducible, and the distinction matters. A results CSV
+records only citations that survived validation: `actual_citations` is empty on all
+three of run 7's all-fabricated rows, and no dropped doc_id appears anywhere in either
+CSV. Dropped doc_ids exist only in the structured logs, which are not committed. They
+survive here only where a run section quotes them, which runs 5, 6 and 8 do in full and
+the run 7 section does not.
+
+So a replay-based exemption remains a demonstration only for a run whose drops this
+file records verbatim. Closing that gap needs either the structured logs committed
+alongside the CSVs, or every dropped doc_id written into its run section as runs 5, 6
+and 8 already do.
 
 ## Classifier non-determinism and run-to-run variance
 
