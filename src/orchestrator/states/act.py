@@ -507,30 +507,27 @@ class ActState(BaseState[StateContext, ActOutput]):
                 for c in data.get("kb_citations", [])
             ]
             citations = _validate_citations(parsed, self._logger, correlation_id)
-            # A non-empty citation list that validates down to nothing means every
-            # doc_id the agent produced was fabricated. That is a model failure, not
-            # a legitimate absence of KB coverage, so it must not report success.
-            all_fabricated = bool(parsed) and not citations
-            resolution_status = "unresolved" if all_fabricated else "resolved"
-            error_details = (
-                f"all {len(parsed)} KB citations referenced documents not in the KB"
-                if all_fabricated
-                else None
-            )
+            # Citation validation deliberately does not affect resolution_status.
+            # A doc_id that fails to resolve is a source-labelling error, and
+            # escalating on it discards an answer whose content may well be correct.
+            # The check also ordered severity backwards: a mistyped real filename
+            # escalated while a real but irrelevant one passed silently, because
+            # only existence is checked and never relevance. kb_citations_dropped
+            # stays on the event as the signal. See BASELINE_NOTES, run 7.
             self._logger.log_event(
                 event_type="act_kb_result",
                 state_name="act",
                 correlation_id=correlation_id,
-                level="warn" if all_fabricated else "info",
-                resolution_status=resolution_status,
+                level="info",
+                resolution_status="resolved",
                 kb_citation_count=len(citations),
                 kb_citations_dropped=len(parsed) - len(citations),
             )
             return ActOutput(
-                resolution_status=resolution_status,
+                resolution_status="resolved",
                 tools_called=[],
                 kb_citations=citations,
-                error_details=error_details,
+                error_details=None,
             )
         except Exception as exc:
             self._logger.log_event(

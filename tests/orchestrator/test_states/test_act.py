@@ -587,10 +587,15 @@ class TestActStateContextHandling:
         assert result.error_details is None
 
     @pytest.mark.asyncio
-    async def test_info_path_all_citations_fabricated_returns_unresolved(
+    async def test_info_path_all_citations_dropped_stays_resolved(
         self, state: ActState, session: SessionState
     ) -> None:
-        """Every doc_id fabricated means no real evidence, so the turn is unresolved."""
+        """Losing every doc_id is a labelling failure, not grounds for escalation.
+
+        The answer is still returned unsourced rather than discarded, because
+        validation checks only that a doc_id resolves, never that the document
+        supports the answer.
+        """
         context = _make_context(session, RoutingDecision.INFO_PATH)
         fake = json.dumps({"kb_citations": [
             {"doc_id": "kb/plans/99-nonexistent.md", "section": "S", "relevance": "r"},
@@ -600,10 +605,9 @@ class TestActStateContextHandling:
         with patch.object(state, "_invoke_agent_for_kb", return_value=fake):
             result = await state.run(context)
 
-        assert result.resolution_status == "unresolved"
+        assert result.resolution_status == "resolved"
         assert result.kb_citations == []
-        assert "2" in result.error_details
-        assert "not in the KB" in result.error_details
+        assert result.error_details is None
 
     @pytest.mark.asyncio
     async def test_info_path_partial_fabrication_stays_resolved(
