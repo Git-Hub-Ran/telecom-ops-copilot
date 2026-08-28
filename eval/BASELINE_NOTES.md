@@ -230,6 +230,18 @@ the total-fabrication branch from commit ff7c75b, which run 6 had recorded as st
 unexercised. `citation_dropped` rose from 3 events in run 6 to 9 in run 7, spread
 across four queries.
 
+The nine dropped doc_ids, recorded verbatim so the classification replays in this file
+reproduce from the repository rather than from a run log nobody else holds:
+
+- STD-008: `kb/essential.md`, `kb/connect.md`, `kb/unlimited.md`
+- STD-013: `kb/plans/05-internet-100.md`, `kb/plans/08-fiber-1000.md`
+- STD-020: `0†01-essential.md`, `2†03-unlimited.md`
+- STD-029: `04-connect.md`, `04-unlimited.md`
+
+STD-008, STD-013 and STD-020 lost every citation and are the three rows that hit the
+branch. STD-029 kept two of its four and stayed resolved, which is what makes it the
+control described below.
+
 ### The escalations it produced
 
 Three rows lost every citation and hit the branch: STD-008, STD-013 and STD-020. Each
@@ -397,18 +409,18 @@ Run 7's and run 8's results CSVs are now committed, and `.gitignore` no longer e
 individual runs by name, so a run was committed only if someone remembered to add an
 exception, and runs 7 and 8 never were. Results are now committed by default.
 
-That makes every score in this file reproducible from a clean checkout. It does not
-make the citation replays reproducible, and the distinction matters. A results CSV
+That makes every score in this file reproducible from a clean checkout. The CSVs alone
+do not cover the citation replays, and the distinction matters. A results CSV
 records only citations that survived validation: `actual_citations` is empty on all
 three of run 7's all-fabricated rows, and no dropped doc_id appears anywhere in either
-CSV. Dropped doc_ids exist only in the structured logs, which are not committed. They
-survive here only where a run section quotes them, which runs 5, 6 and 8 do in full and
-the run 7 section does not.
+CSV. Dropped doc_ids exist only in the structured logs, which are not committed, and
+survive here only where a run section quotes them.
 
-So a replay-based exemption remains a demonstration only for a run whose drops this
-file records verbatim. Closing that gap needs either the structured logs committed
-alongside the CSVs, or every dropped doc_id written into its run section as runs 5, 6
-and 8 already do.
+Runs 5, 6, 7 and 8 each now record their dropped doc_ids verbatim, so the citation
+replays in this file reproduce from the repository. That is what makes a replay-based
+exemption a demonstration rather than an assertion. It holds only for as long as each
+run section keeps recording them: a future run whose drops are left in its log alone
+puts any exemption claimed for it back to an assertion.
 
 ## Classifier non-determinism and run-to-run variance
 
