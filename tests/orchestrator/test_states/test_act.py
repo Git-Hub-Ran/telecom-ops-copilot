@@ -725,6 +725,20 @@ class TestValidateCitations:
         assert kwargs["reason"] == "identifier_mismatch"
         assert kwargs["level"] == "info"
 
+    def test_doc_id_written_as_plan_name_is_an_identifier_mismatch(self) -> None:
+        """A document cited by the plan_name it declares is a real document.
+
+        04-internet-100.md carries `plan_name: Internet 100` in its own
+        frontmatter, so a doc_id of Internet100.md is the model reading the
+        document and naming it as the document names itself.
+        """
+        logger = MagicMock()
+        result = _validate_citations([_citation("kb/Internet100.md")], logger, "corr-001")
+        assert result == []
+        kwargs = logger.log_event.call_args.kwargs
+        assert kwargs["reason"] == "identifier_mismatch"
+        assert kwargs["level"] == "info"
+
     def test_invented_doc_id_dropped_as_not_found_and_warned(self) -> None:
         """A doc_id matching no KB document even by stem is the fabrication case."""
         logger = MagicMock()
@@ -806,8 +820,11 @@ class TestValidateCitations:
         )
         assert len(paths) == len(by_basename)
         assert len(paths) == len(stems), (
-            "KB stems must be unique so a misnumbered doc_id is reported as an "
-            "identifier mismatch rather than as a fabricated citation"
+            "Every KB filename must fold to a distinct stem once its NN- prefix, "
+            "extension, case, and separators are dropped, so a doc_id written in "
+            "another spelling is reported as an identifier mismatch rather than as "
+            "a fabricated citation. Two files folding together would silently "
+            "degrade both to not_found_in_kb"
         )
 
     def test_colliding_basename_is_left_out_of_the_lookup(
@@ -820,7 +837,7 @@ class TestValidateCitations:
         try:
             paths, by_basename, ambiguous, stems = _kb_index()
             assert ambiguous == frozenset({"01-essential.md"})
-            assert "essential.md" not in stems
+            assert "essential" not in stems
             assert "01-essential.md" not in by_basename
             # Canonical paths are unaffected; only the basename shortcut is lost.
             assert "kb/plans/01-essential.md" in paths

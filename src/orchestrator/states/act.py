@@ -48,10 +48,7 @@ _PARTIAL_ERROR_CODES: frozenset[str] = frozenset({"invalid_format", "not_found"}
 # real KB filename, starting with 01-essential.md.
 _FOUNDRY_ANNOTATION_PREFIX = re.compile(r"^\d+(?::\d+)?†")
 
-# KB filenames are ordered with a NN- prefix. Stripping it yields a stem that
-# identifies the document independently of its position, which is what tells a
-# misnumbered doc_id apart from an invented one. Used only to classify a drop,
-# never to resolve one.
+# The NN- ordering prefix on every KB filename, stripped by _document_stem.
 _NUMERIC_FILENAME_PREFIX = re.compile(r"^\d+[-_]")
 
 # Routing decisions that must never be routed to ActState.
@@ -131,6 +128,24 @@ def _worst_status(statuses: list[str]) -> str:
     return "resolved"
 
 
+def _document_stem(basename: str) -> str:
+    """Fold a basename to the document it names, independent of how it was written.
+
+    Drops the NN- ordering prefix, the extension, case, and separators, so
+    04-internet-100.md, internet-100.md and Internet100.md all reduce to
+    internet100. The act agent writes a doc_id in whichever shape it has to hand,
+    including the plan_name a document declares about itself in its own
+    frontmatter, and the stem is what tells a real document written under another
+    spelling apart from a document that does not exist at all.
+
+    Used only to classify a dropped citation, never to resolve one. Every stem the
+    KB produces must stay distinct for that classification to mean anything, which
+    the kb index test asserts.
+    """
+    stem = _NUMERIC_FILENAME_PREFIX.sub("", basename).lower().removesuffix(".md")
+    return re.sub("[^a-z0-9]", "", stem)
+
+
 def _first_error(records: list[ToolCallRecord]) -> str | None:
     """Return the error_code of the first failed ToolCallRecord, or None.
 
@@ -162,9 +177,9 @@ def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str], frozens
     is dropped rather than resolved to the wrong document. Canonical full paths are
     unaffected: they resolve against the path set, which collisions do not touch.
 
-    The stem set holds every NN--stripped basename claimed by exactly one file. A
-    dropped doc_id whose stem is in that set named a real document and got its
-    identifier wrong, which is reported as identifier_mismatch rather than as a
+    The stem set holds every _document_stem claimed by exactly one file. A dropped
+    doc_id whose stem is in that set named a real document and wrote its identifier
+    differently, which is reported as identifier_mismatch rather than as a
     fabricated citation. Stems claimed by more than one file are left out, so an
     unresolvable doc_id is never described as a near miss on the strength of a
     name that does not single out a document.
@@ -184,7 +199,7 @@ def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str], frozens
         by_basename[name] = path
     stem_counts: dict[str, int] = {}
     for path in paths:
-        stem = _NUMERIC_FILENAME_PREFIX.sub("", path.rsplit("/", 1)[-1])
+        stem = _document_stem(path.rsplit("/", 1)[-1])
         stem_counts[stem] = stem_counts.get(stem, 0) + 1
     stems = frozenset(s for s, count in stem_counts.items() if count == 1)
     return frozenset(paths), by_basename, frozenset(ambiguous), stems
@@ -204,10 +219,11 @@ def _validate_citations(
     Dropped citations are logged with a reason. "ambiguous_basename" means more
     than one KB file claims the name, so the document exists but the doc_id does
     not say which, and resolving it would risk citing the wrong file.
-    "identifier_mismatch" means the doc_id named a real document and got its
-    identifier wrong, usually a wrong or missing NN- prefix. "not_found_in_kb"
-    means nothing in the KB matches even by stem, which is the only one of the
-    three that indicates a fabricated citation, and the only one logged at warn.
+    "identifier_mismatch" means the doc_id named a real document and wrote its
+    identifier differently, whether a wrong or missing NN- prefix or the document's
+    own plan_name in place of its filename. "not_found_in_kb" means nothing in the
+    KB matches even by stem, which is the only one of the three that indicates a
+    fabricated citation, and the only one logged at warn.
 
     All three are still dropped. The stem comparison classifies the failure; it
     never resolves a doc_id, because a document that answers to a name the model
@@ -253,7 +269,7 @@ def _validate_citations(
             continue
         if basename in ambiguous_basenames:
             reason, level = "ambiguous_basename", "warn"
-        elif _NUMERIC_FILENAME_PREFIX.sub("", basename) in kb_stems:
+        elif _document_stem(basename) in kb_stems:
             reason, level = "identifier_mismatch", "info"
         else:
             reason, level = "not_found_in_kb", "warn"
