@@ -1,4 +1,4 @@
-# Capstone Assessment
+# Design and Operations Assessment
 
 ## 1. Why an agent instead of a deterministic workflow?
 
