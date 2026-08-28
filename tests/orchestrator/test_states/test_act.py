@@ -706,8 +706,13 @@ class TestValidateCitations:
         )
         assert [c.doc_id for c in result] == ["kb/plans/06-bundles-and-discounts.md"]
 
-    def test_fabricated_doc_id_dropped_and_logged(self) -> None:
-        """A doc_id matching no KB file is dropped and logged."""
+    def test_misnumbered_doc_id_dropped_as_identifier_mismatch(self) -> None:
+        """A real document under a wrong NN- prefix is dropped, but not as fabrication.
+
+        internet-100 exists as 04-internet-100.md, so the model named a document
+        that is really there and got its identifier wrong. It is still dropped,
+        because a stem is not evidence of which document the answer came from.
+        """
         logger = MagicMock()
         result = _validate_citations(
             [_citation("kb/plans/05-internet-100.md")], logger, "corr-001"
@@ -717,7 +722,19 @@ class TestValidateCitations:
         kwargs = logger.log_event.call_args.kwargs
         assert kwargs["event_type"] == "citation_dropped"
         assert kwargs["doc_id"] == "kb/plans/05-internet-100.md"
+        assert kwargs["reason"] == "identifier_mismatch"
+        assert kwargs["level"] == "info"
+
+    def test_invented_doc_id_dropped_as_not_found_and_warned(self) -> None:
+        """A doc_id matching no KB document even by stem is the fabrication case."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("kb/plans/07-platinum-tier.md")], logger, "corr-001"
+        )
+        assert result == []
+        kwargs = logger.log_event.call_args.kwargs
         assert kwargs["reason"] == "not_found_in_kb"
+        assert kwargs["level"] == "warn"
         assert kwargs["correlation_id"] == "corr-001"
 
     def test_foundry_annotation_prefix_stripped_and_recovery_logged(self) -> None:
@@ -780,7 +797,7 @@ class TestValidateCitations:
 
     def test_kb_index_finds_committed_documents(self) -> None:
         """The KB index resolves against the real committed kb/ directory."""
-        paths, by_basename, ambiguous = _kb_index()
+        paths, by_basename, ambiguous, stems = _kb_index()
         assert "kb/policies/02-late-fees.md" in paths
         assert by_basename["02-late-fees.md"] == "kb/policies/02-late-fees.md"
         assert not ambiguous, (
@@ -788,6 +805,10 @@ class TestValidateCitations:
             f"claimed by more than one: {sorted(ambiguous)}"
         )
         assert len(paths) == len(by_basename)
+        assert len(paths) == len(stems), (
+            "KB stems must be unique so a misnumbered doc_id is reported as an "
+            "identifier mismatch rather than as a fabricated citation"
+        )
 
     def test_colliding_basename_is_left_out_of_the_lookup(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -797,8 +818,9 @@ class TestValidateCitations:
         monkeypatch.setattr("src.orchestrator.states.act.PROJECT_ROOT", tmp_path)
         _kb_index.cache_clear()
         try:
-            paths, by_basename, ambiguous = _kb_index()
+            paths, by_basename, ambiguous, stems = _kb_index()
             assert ambiguous == frozenset({"01-essential.md"})
+            assert "essential.md" not in stems
             assert "01-essential.md" not in by_basename
             # Canonical paths are unaffected; only the basename shortcut is lost.
             assert "kb/plans/01-essential.md" in paths

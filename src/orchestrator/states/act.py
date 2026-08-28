@@ -48,6 +48,12 @@ _PARTIAL_ERROR_CODES: frozenset[str] = frozenset({"invalid_format", "not_found"}
 # real KB filename, starting with 01-essential.md.
 _FOUNDRY_ANNOTATION_PREFIX = re.compile(r"^\d+(?::\d+)?†")
 
+# KB filenames are ordered with a NN- prefix. Stripping it yields a stem that
+# identifies the document independently of its position, which is what tells a
+# misnumbered doc_id apart from an invented one. Used only to classify a drop,
+# never to resolve one.
+_NUMERIC_FILENAME_PREFIX = re.compile(r"^\d+[-_]")
+
 # Routing decisions that must never be routed to ActState.
 _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
     RoutingDecision.SKIP_TO_ESCALATE,
@@ -141,8 +147,8 @@ def _first_error(records: list[ToolCallRecord]) -> str | None:
 
 
 @lru_cache(maxsize=1)
-def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str]]:
-    """Return (canonical KB paths, basename lookup, ambiguous basenames).
+def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str], frozenset[str]]:
+    """Return (canonical KB paths, basename lookup, ambiguous basenames, stems).
 
     Cached so the kb/ directory is scanned once per process on first use rather
     than as an import side effect.
@@ -155,6 +161,13 @@ def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str]]:
     therefore left out of the lookup and reported instead, so an ambiguous doc_id
     is dropped rather than resolved to the wrong document. Canonical full paths are
     unaffected: they resolve against the path set, which collisions do not touch.
+
+    The stem set holds every NN--stripped basename claimed by exactly one file. A
+    dropped doc_id whose stem is in that set named a real document and got its
+    identifier wrong, which is reported as identifier_mismatch rather than as a
+    fabricated citation. Stems claimed by more than one file are left out, so an
+    unresolvable doc_id is never described as a near miss on the strength of a
+    name that does not single out a document.
     """
     paths = {
         p.relative_to(PROJECT_ROOT).as_posix()
@@ -169,7 +182,12 @@ def _kb_index() -> tuple[frozenset[str], dict[str, str], frozenset[str]]:
             by_basename.pop(name, None)
             continue
         by_basename[name] = path
-    return frozenset(paths), by_basename, frozenset(ambiguous)
+    stem_counts: dict[str, int] = {}
+    for path in paths:
+        stem = _NUMERIC_FILENAME_PREFIX.sub("", path.rsplit("/", 1)[-1])
+        stem_counts[stem] = stem_counts.get(stem, 0) + 1
+    stems = frozenset(s for s, count in stem_counts.items() if count == 1)
+    return frozenset(paths), by_basename, frozenset(ambiguous), stems
 
 
 def _validate_citations(
@@ -183,10 +201,17 @@ def _validate_citations(
     anything else is dropped so the customer is never shown a citation to a document
     that cannot be retrieved.
 
-    Dropped citations are logged with a reason: "not_found_in_kb" when no KB file
-    matches, and "ambiguous_basename" when more than one does. The second means the
-    document exists but the doc_id does not say which, so resolving it would risk
-    citing the wrong file.
+    Dropped citations are logged with a reason. "ambiguous_basename" means more
+    than one KB file claims the name, so the document exists but the doc_id does
+    not say which, and resolving it would risk citing the wrong file.
+    "identifier_mismatch" means the doc_id named a real document and got its
+    identifier wrong, usually a wrong or missing NN- prefix. "not_found_in_kb"
+    means nothing in the KB matches even by stem, which is the only one of the
+    three that indicates a fabricated citation, and the only one logged at warn.
+
+    All three are still dropped. The stem comparison classifies the failure; it
+    never resolves a doc_id, because a document that answers to a name the model
+    guessed at is not evidence that it is the document the answer came from.
 
     A doc_id may also arrive carrying a leaked Foundry citation annotation prefix,
     which is stripped before any lookup. Recovering one is logged as
@@ -202,7 +227,7 @@ def _validate_citations(
         Citations with canonical doc_ids, excluding any that match no KB file
         and any whose basename is claimed by more than one.
     """
-    kb_paths, kb_by_basename, ambiguous_basenames = _kb_index()
+    kb_paths, kb_by_basename, ambiguous_basenames, kb_stems = _kb_index()
     validated: list[KBCitation] = []
     for citation in citations:
         raw_doc_id = citation.doc_id
@@ -226,17 +251,19 @@ def _validate_citations(
                 else citation.model_copy(update={"doc_id": canonical})
             )
             continue
+        if basename in ambiguous_basenames:
+            reason, level = "ambiguous_basename", "warn"
+        elif _NUMERIC_FILENAME_PREFIX.sub("", basename) in kb_stems:
+            reason, level = "identifier_mismatch", "info"
+        else:
+            reason, level = "not_found_in_kb", "warn"
         logger.log_event(
             event_type="citation_dropped",
             state_name="act",
             correlation_id=correlation_id,
-            level="warn",
+            level=level,
             doc_id=raw_doc_id,
-            reason=(
-                "ambiguous_basename"
-                if basename in ambiguous_basenames
-                else "not_found_in_kb"
-            ),
+            reason=reason,
         )
     return validated
 
