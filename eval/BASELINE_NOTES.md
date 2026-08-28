@@ -10,25 +10,23 @@ runs use the full 100-query golden set (`eval/golden_set.csv`).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 87.0% | >=90% | FAIL |
-| Tool selection | 81.5% | >=85% | FAIL |
+| Intent accuracy | 89.0% | >=90% | FAIL |
+| Tool selection | 82.0% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~14s | <=5s | FAIL |
+| Latency p95 | ~19s | <=5s | FAIL |
 | Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-All figures are from run 5 (2026-08-23 18:02), the last run to pass the ratchet and
-the first since commit ff7c75b. Run 6 is more recent but ran against a classifier
-prompt that was reverted afterwards, so it is not the baseline; see the run 6 section
-below. Intent accuracy is one query below run 4 (88%); tool
-selection is half a point below (82.0%), one row having moved from 0.5 to 0.0.
-Both sit within the run-to-run variance documented below. Escalation figures are
-unchanged from run 4 but vary between runs; see "Classifier non-determinism and
-run-to-run variance" below before citing them. Commit ff7c75b was itself reverted on
-August 28, 2026 in commit a0b01e1, after run 7 exercised it for the first time. The
-escalation figures in this table predate that revert and will move on run 8; see the
-run 7 section.
+All figures are from run 8 (2026-08-28 17:28), the first run to measure the state
+after commit ff7c75b was reverted in commit a0b01e1. Intent accuracy of 89.0% matches
+run 3 and is the highest recorded, one query above run 4 and two above run 5. Tool
+selection is half a point above run 5. Escalation precision and recall are unchanged
+in value from run 5, but run 7 had driven precision to 66.7% and run 8 returns it.
+Deflection is measured over the 70 standard queries, 65 of which resolved without
+escalation. Latency p95 rose from approximately 14s in run 5; see the latency section
+for the outlier that does not explain it. Escalation figures vary between runs; see
+"Classifier non-determinism and run-to-run variance" below before citing them.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
 computed; the grounding_score column is empty in every committed results CSV.
@@ -316,6 +314,91 @@ offsets 833 and 525. Raising that cap is a prerequisite for working on them.
 The pre-validation `text_content` of a citation is parsed and then discarded without
 being logged. Had it been recorded, the deflection rows would have answered the content
 question directly instead of requiring STD-029 as a proxy.
+
+## Run 8 (2026-08-28): the reverted state measured, and a fourth run without fabrication
+
+Run 8 is the first run to measure the state after the ff7c75b revert, and it is the
+stated baseline. Intent accuracy 89.0%, tool selection 82.0%, escalation precision
+92.3% (12/13) and recall 85.7% (12/14), deflection 92.9% over the 70 standard queries,
+p95 approximately 19s. No row recorded an error.
+
+### The escalations recovered
+
+STD-008, STD-013 and STD-020 all return `esc=false`, and the recovery splits cleanly
+between the two commits. STD-020 was recovered by the annotation normalisation in
+commit 5077919, which resolves both of its citations so that it never reaches the
+branch at all. STD-008 and STD-013 were recovered by the revert in commit a0b01e1.
+Escalation precision returns to 92.3% from run 7's 66.7%, and tool selection to 82.0%
+from 77.0%, the latter because four rows stop emitting `create_escalation_ticket`.
+
+STD-017 and ADV-020 also return `esc=false`, and no `act_kb_error` fired anywhere in
+the run. The JSONDecodeError that escalated both in run 7 did not reproduce, which
+makes it nondeterministic rather than a stable defect. It is not fixed, and nothing in
+these commits touched it. The 200-character `raw_response_snippet` cap still wants
+raising before the next occurrence, because when it recurs the failing region will
+again sit past the end of the snippet and the failure will again not be diagnosable
+from the logs.
+
+The remaining escalation gaps are unchanged and unrelated to any of this work.
+ADV-014 is the single false positive. ADV-002 and ADV-004 are the two false negatives,
+both from the classifier refusing in prose and falling back to `unknown`. Two
+`classification_error` events fired, the same two rows and the same mechanism run 5
+recorded.
+
+### A fourth run without fabrication
+
+Five citations dropped, and the reason-code split from commit 89ca8e5 ran for the
+first time. Three classified as `identifier_mismatch` at info: `04-essential.md`,
+`kb/plans/internet-100.md` and `kb/plans/fiber-1000.md`. Two classified as
+`not_found_in_kb` at warn, `kb/Internet100.md` and `kb/Fiber1000.md`, which would have
+been the first fabricated citations recorded in any run.
+
+They are not fabrications. Each names a real document by the plan_name that document
+declares in its own frontmatter: `04-internet-100.md` carries `plan_name: Internet 100`
+and `05-fiber-1000.md` carries `plan_name: Fiber 1000`. The model read the document and
+named it as the document names itself, which makes the string KB content rather than
+invention.
+
+The same run settles it without needing that argument. STD-012 cited those two
+documents as `kb/plans/internet-100.md` and `kb/plans/fiber-1000.md`, and both
+classified as `identifier_mismatch`. Run 8 cited one pair of documents in two label
+forms, and only the form matching each document's own declared name reached warn. The
+reason code was splitting on the shape of the label rather than on whether the document
+exists, which is the distinction it was added to draw.
+
+Commit 64cc88a folds case and separators into `_document_stem`, and both warns
+reclassify to `identifier_mismatch` at info. Replaying all 19 dropped doc_ids from runs
+5 through 8 gives 17 `identifier_mismatch` and 2 Foundry annotation artifacts. Across
+four runs, no citation has named a document that does not exist.
+
+The failure has been the same one every time. The act agent does not reliably know the
+filename of a document it has read, and reaches for whatever name it has to hand: a
+bare stem, a wrong ordering prefix, an invented directory, a leaked platform
+annotation, or the plan_name the document declares. Calling this hallucination was
+always a misreading of a naming problem.
+
+That points at a fix these commits do not make. Indexing plan_name as a resolution key
+would let citations like these resolve rather than drop, recovering grounding instead
+of relabelling its absence. That changes resolution rather than diagnosis, so it is
+deliberately left as a separate decision rather than folded into the classifier.
+
+### Latency
+
+p95 is approximately 19s against a 5s target, up from approximately 14s in run 5.
+STD-001 recorded 496948ms, which is not a latency measurement: it is the first call of
+the run and carries Foundry agent creation and an interactive device-code
+authentication. It sits above p95 and does not affect it, but it dominates any mean
+computed over the run and should not be read as a regression.
+
+### Reproducibility of the replays
+
+Run 7's and run 8's results CSVs are not in the repository. `.gitignore` excludes
+`eval/results_*.csv`, and the CSVs from runs 1 to 6 are present only because they were
+committed before that rule was added. The replays recorded in this section and in the
+run 7 section were run against the structured logs and the local CSVs, so reproducing
+them from a clean checkout is not currently possible. That also limits any future
+exemption claimed on the basis of replaying every doc_id a run produced, which is the
+basis the KB basename guard and the annotation normalisation both used.
 
 ## Classifier non-determinism and run-to-run variance
 
