@@ -716,6 +716,51 @@ class TestValidateCitations:
         assert kwargs["reason"] == "not_found_in_kb"
         assert kwargs["correlation_id"] == "corr-001"
 
+    def test_foundry_annotation_prefix_stripped_and_recovery_logged(self) -> None:
+        """A leaked Foundry annotation prefix is stripped, not treated as fabrication."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("0†01-essential.md")], logger, "corr-001"
+        )
+        assert [c.doc_id for c in result] == ["kb/plans/01-essential.md"]
+        logger.log_event.assert_called_once()
+        kwargs = logger.log_event.call_args.kwargs
+        assert kwargs["event_type"] == "citation_recovered"
+        assert kwargs["doc_id"] == "kb/plans/01-essential.md"
+        assert kwargs["raw_doc_id"] == "0†01-essential.md"
+        assert kwargs["reason"] == "foundry_annotation_prefix"
+
+    def test_annotation_prefix_carrying_file_index_stripped(self) -> None:
+        """The full N:M form of the annotation marker is stripped too."""
+        result = _validate_citations(
+            [_citation("4:0†02-late-fees.md")], MagicMock(), "corr-001"
+        )
+        assert [c.doc_id for c in result] == ["kb/policies/02-late-fees.md"]
+
+    def test_numeric_filename_prefix_never_stripped(self) -> None:
+        """Stripping requires the dagger, so a real NN- filename prefix survives.
+
+        Without that anchor the rule would rewrite 01-essential.md to -essential.md
+        and drop every correctly cited KB document.
+        """
+        logger = MagicMock()
+        result = _validate_citations([_citation("01-essential.md")], logger, "corr-001")
+        assert [c.doc_id for c in result] == ["kb/plans/01-essential.md"]
+        logger.log_event.assert_not_called()
+
+    def test_annotation_prefix_on_unknown_document_still_dropped(self) -> None:
+        """Stripping the marker does not rescue a doc_id naming no real KB file."""
+        logger = MagicMock()
+        result = _validate_citations(
+            [_citation("0†99-nonexistent.md")], logger, "corr-001"
+        )
+        assert result == []
+        logger.log_event.assert_called_once()
+        kwargs = logger.log_event.call_args.kwargs
+        assert kwargs["event_type"] == "citation_dropped"
+        assert kwargs["doc_id"] == "0†99-nonexistent.md"
+        assert kwargs["reason"] == "not_found_in_kb"
+
     def test_other_citation_fields_preserved_on_normalisation(self) -> None:
         """Normalising doc_id leaves section, relevance, and text_content intact."""
         citation = KBCitation(

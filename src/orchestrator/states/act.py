@@ -11,6 +11,7 @@ Per FR-048, each tool attempt is logged as a tool_call event.
 
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from functools import lru_cache
 from time import monotonic
@@ -37,6 +38,15 @@ from src.tools.outage import check_network_outage
 # Error codes that resolve to "partial" without triggering a retry.
 # These indicate a caller-side problem that a retry cannot fix.
 _PARTIAL_ERROR_CODES: frozenset[str] = frozenset({"invalid_format", "not_found"})
+
+# Azure AI Foundry file_search returns citations as annotations shaped
+# 【N:M†source】. The act agent sometimes echoes the "N†" or "N:M†" fragment of
+# that marker into the doc_id itself, yielding ids like "0†01-essential.md". The
+# document named after the marker is real, so this is a platform artifact rather
+# than a fabricated citation. Matching requires the U+2020 DAGGER: a rule that
+# stripped a bare leading digit run would consume the numeric prefix of every
+# real KB filename, starting with 01-essential.md.
+_FOUNDRY_ANNOTATION_PREFIX = re.compile(r"^\d+(?::\d+)?†")
 
 # Routing decisions that must never be routed to ActState.
 _BYPASS_DECISIONS: frozenset[RoutingDecision] = frozenset({
@@ -178,6 +188,11 @@ def _validate_citations(
     document exists but the doc_id does not say which, so resolving it would risk
     citing the wrong file.
 
+    A doc_id may also arrive carrying a leaked Foundry citation annotation prefix,
+    which is stripped before any lookup. Recovering one is logged as
+    citation_recovered, keeping a platform artifact distinguishable in the logs from
+    a doc_id the model genuinely got wrong.
+
     Args:
         citations: Citations parsed from the act agent JSON response.
         logger: StructuredLogger for emitting citation_dropped events.
@@ -190,20 +205,33 @@ def _validate_citations(
     kb_paths, kb_by_basename, ambiguous_basenames = _kb_index()
     validated: list[KBCitation] = []
     for citation in citations:
-        if citation.doc_id in kb_paths:
-            validated.append(citation)
-            continue
-        basename = citation.doc_id.rsplit("/", 1)[-1]
-        canonical = kb_by_basename.get(basename)
+        raw_doc_id = citation.doc_id
+        doc_id = _FOUNDRY_ANNOTATION_PREFIX.sub("", raw_doc_id)
+        basename = doc_id.rsplit("/", 1)[-1]
+        canonical = doc_id if doc_id in kb_paths else kb_by_basename.get(basename)
         if canonical is not None:
-            validated.append(citation.model_copy(update={"doc_id": canonical}))
+            if doc_id != raw_doc_id:
+                logger.log_event(
+                    event_type="citation_recovered",
+                    state_name="act",
+                    correlation_id=correlation_id,
+                    level="info",
+                    doc_id=canonical,
+                    raw_doc_id=raw_doc_id,
+                    reason="foundry_annotation_prefix",
+                )
+            validated.append(
+                citation
+                if canonical == raw_doc_id
+                else citation.model_copy(update={"doc_id": canonical})
+            )
             continue
         logger.log_event(
             event_type="citation_dropped",
             state_name="act",
             correlation_id=correlation_id,
             level="warn",
-            doc_id=citation.doc_id,
+            doc_id=raw_doc_id,
             reason=(
                 "ambiguous_basename"
                 if basename in ambiguous_basenames
