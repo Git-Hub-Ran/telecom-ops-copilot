@@ -180,6 +180,20 @@ never executed during an eval. The change cannot move any metric until a golden 
 triggers a persistence failure, which none does. See "When a change cannot affect the
 measurement" in docs/EVAL.md for the conditions this exemption is claimed under.
 
+A third exemption covers the KB basename guard of 2026-08-27 (commit 000e320), which
+changed how `_kb_index` builds its basename lookup and added an `ambiguous_basename`
+drop reason. Replaying every doc_id any committed run produced, 53 distinct values
+taken from the actual_citations column of all seven results CSVs plus the three
+dropped paths recorded in run 6's structured logs, the previous and current versions
+resolve every one of them identically. The comparison is total rather than sampled:
+over the committed kb/ tree the old and new basename maps are equal, so the two
+versions are the same function for every possible input, and no basename in kb/ is
+claimed by more than one file. The new drop reason cannot appear either, since it is
+emitted only for an ambiguous basename; run 6 recorded `not_found_in_kb` on all three
+of its drops. Scores are unaffected. This exemption lapses the moment a KB file is
+added whose basename already exists, which is the condition the guard exists for and
+which the kb index test fails on.
+
 Three `citation_dropped` events fired, the most in any run: `kb/internet-plans/05-internet-100.md`,
 `kb/internet-plans/08-fiber-1000.md`, and `kb/04-unlimited.md`. All three invent a
 directory or a numeric prefix while getting the filename stem right, and
