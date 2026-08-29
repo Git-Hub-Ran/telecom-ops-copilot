@@ -422,6 +422,48 @@ exemption a demonstration rather than an assertion. It holds only for as long as
 run section keeps recording them: a future run whose drops are left in its log alone
 puts any exemption claimed for it back to an assertion.
 
+### Promoting the fold, and why it is deferred
+
+`_document_stem` classifies a dropped citation and does nothing else. Promoting it
+would mean using it to resolve: a doc_id whose folded stem matches a KB document would
+be rewritten to that document's canonical path rather than dropped. The change is
+small. The stem lookup moves up into the resolution chain beside the path and basename
+lookups, and the `identifier_mismatch` branch disappears, because a citation that folds
+onto a real document stops being a drop at all. Deferring costs one branch that exists
+only to classify.
+
+Replaying every dropped doc_id recorded in this file, 19 across runs 5 to 8, promotion
+would resolve 17. The other two are Foundry annotation artifacts that the prefix strip
+already recovers. None would remain dropped, because no run has yet recorded a citation
+naming a document that does not exist.
+
+The KB frontmatter makes this simpler than it first appears. Every `plan_name` and
+`plan_id` a document declares already folds onto its own filename, so a model naming a
+document as the document names itself lands on the right file with no alias table to
+maintain. One field does not: `kb/about/01-about-telsano.md` declares
+`topic: company_overview`, which folds to `companyoverview` against a filename folding
+to `abouttelsano`. A citation using that topic would still drop.
+
+It is deferred anyway, and the branch is not the reason.
+
+Grounding faithfulness has never been computed. Promoting the fold would raise the
+citation count on info rows, and nothing in the eval could say whether the newly
+resolved citations support the answers they are attached to. The failure mode is
+already on record: STD-018 cited `kb/troubleshooting/03-mobile-no-signal.md` for a
+question about international roaming in runs 4 and 5, a real document that does not
+answer it. Validation passed it because it exists. Promotion would make that class of
+citation more common and no more visible.
+
+That trade is the wrong one for this project specifically. Several of its metrics are
+weak, and their value comes from being labelled honestly rather than from being high.
+Promoting the fold would improve apparent grounding at exactly the point where the
+metric that could check it is documented as not computed.
+
+Revisit when grounding faithfulness is computed; the three blockers are in
+"3. Grounding faithfulness" in docs/EVAL.md. Once a faithfulness figure exists for the
+info rows, promotion becomes a measurable question rather than a judgement: run it,
+compare the score before and after, and keep it only if grounding holds.
+
 ## Classifier non-determinism and run-to-run variance
 
 The same query can be classified differently on two runs of identical code
