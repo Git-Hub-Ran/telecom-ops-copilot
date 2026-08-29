@@ -14,19 +14,26 @@ runs use the full 100-query golden set (`eval/golden_set.csv`).
 | Tool selection | 82.0% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~19s | <=5s | FAIL |
+| Latency p95 | ~16s | <=5s | FAIL |
 | Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-All figures are from run 8 (2026-08-28 17:28), the first run to measure the state
-after commit ff7c75b was reverted in commit a0b01e1. Intent accuracy of 89.0% matches
-run 3 and is the highest recorded, one query above run 4 and two above run 5. Tool
-selection is half a point above run 5. Escalation precision and recall are unchanged
-in value from run 5, but run 7 had driven precision to 66.7% and run 8 returns it.
-Deflection is measured over the 70 standard queries, 65 of which resolved without
-escalation. Latency p95 rose from approximately 14s in run 5; see the latency section
-for the outlier that does not explain it. Escalation figures vary between runs; see
-"Classifier non-determinism and run-to-run variance" below before citing them.
+All figures are from run 9 (2026-08-29 16:08). It is the first run in which all four
+deployed Foundry agents matched their committed prompts, checked rather than assumed.
+Every earlier run, run 8 included, measured `escalate-agent` against a prompt the
+repository had replaced on 2026-08-07; see the run 9 section for why that changed
+nothing measured. The figures are identical to run 8 on every scored metric, so
+nothing moved when the gap closed. What changed is that they can now be said to
+measure the committed state.
+
+Intent accuracy of 89.0% matches run 3 and run 8 and is the highest recorded, one
+query above run 4 and two above run 5. Tool selection is half a point above run 5.
+Escalation precision and recall are unchanged in value from run 5, but run 7 had
+driven precision to 66.7% and runs 8 and 9 hold it. Deflection is measured over the
+70 standard queries, 65 of which resolved without escalation. Latency p95 sits inside
+the 14.5 to 21.1 second band the committed runs span. Escalation figures vary between
+runs; see "Classifier non-determinism and run-to-run variance" below before citing
+them, and note that run 9 matched run 8's totals while two rows swapped underneath.
 
 Grounding faithfulness is a required gate in docs/EVAL.md but has never been
 computed; the grounding_score column is empty in every committed results CSV.
@@ -525,6 +532,23 @@ properties that made it impossible to notice. A deployment mismatch that degrade
 gracefully leaves no trace in the metrics, so it will not surface from reading run
 data. It surfaces only from comparing deployed instructions against the repository, for
 every agent, not for the one that changed most recently.
+
+### The pre-merge trigger is satisfied by run 9, not exempted
+
+docs/EVAL.md lists "before merging Dev to Main" as a re-run trigger separate from the
+per-change ones. Run 9 satisfies it directly. It postdates every commit on the branch,
+and all four deployed agents matched their committed prompts when checked beforehand,
+so it measures the state that would merge rather than a state close to it.
+
+That supersedes the exemptions recorded above for the purpose of the merge. Those
+exemptions each argue that one change could not have moved a metric, which is a
+claim about a change. Run 9 is a measurement of the result, which is stronger and
+needs no such argument. The exemptions stay on record because they document decisions
+taken at the time and the reasoning is worth keeping, but a reader does not need to
+reconcile them against the merge: they answer whether a re-run was owed for a given
+commit, and run 9 answers whether the branch as a whole has been measured. If further
+commits land before the merge, the exemption rules apply again to those, and run 9
+stops covering the branch.
 
 ## Classifier non-determinism and run-to-run variance
 
