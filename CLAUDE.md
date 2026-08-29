@@ -20,6 +20,13 @@ shell commands, and other important information, read the current plan:
   "Day N", "revised", or "NEW" in any file or commit message.
 - Always run git status before starting new work to verify a
   clean working tree.
+- At the start of a session, run `git log` against the last commit
+  you remember before reasoning about the current state. Work lands
+  between sessions, and a stale picture produces confident wrong
+  answers rather than visible errors. When a request references work
+  you have no record of, verify it from the repository rather than
+  accepting the premise or disputing it. Accepting invents detail;
+  disputing denies work that was really done.
 - When replying in English, whether in Claude Code or in chat, use
   simple, plain English and keep answers short. This does not apply
   to code itself, only to explanatory text around it.
