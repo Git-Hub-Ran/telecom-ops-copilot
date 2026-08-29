@@ -4,6 +4,11 @@ shell commands, and other important information, read the current plan:
 .specify/features/state-machine-orchestrator/plan.md
 <!-- SPECKIT END -->
 
+That plan is the pre-build document. Its body describes intended architecture
+that changed during implementation, so do not read it for current structure or
+commands: those are in "Project structure" and "Commands" at the end of this
+file, and what actually shipped is in docs/ARCHITECTURE.md.
+
 ## Standing rules
 
 - Before any `git commit`, show the full diff (`git diff --staged`) for
@@ -67,3 +72,50 @@ step that answers the need.
   what the surrounding code already does.
 - This ladder never applies to validation, security, or
   accessibility. Those are written in full.
+
+## Project structure
+
+```
+src/orchestrator/  the five-state pipeline: state_machine.py, states/,
+                   agents/ (prompts and the get-or-create factory),
+                   models/, observability/
+src/tools/         the five tool functions
+src/data/          BillingDataSource protocol, JSON and SQLite implementations
+src/ui/            Streamlit app
+tests/             pytest suite, mirroring the src/ layout
+eval/              golden_set.csv, committed results CSVs, BASELINE_NOTES.md
+kb/                knowledge base markdown
+notebooks/         03-evaluation.ipynb is the eval runner
+scripts/           score_eval.py and the data setup scripts
+docs/              ARCHITECTURE.md is what shipped; PLAN.md is pre-build
+```
+
+## Commands
+
+```bash
+pytest tests/ -q                                  # full suite, no credentials
+streamlit run src/ui/app.py                       # needs .env and device-code sign-in
+python scripts/score_eval.py <results.csv>        # against EVAL.md thresholds
+python scripts/score_eval.py <results.csv> --baseline <prior.csv>   # ratchet
+```
+
+`score_eval.py` takes no default results file. The newest run is not necessarily
+the baseline, and the script cannot tell them apart.
+
+## Quality gates before a PR
+
+- `pytest tests/ -q` passes. CI runs the same suite on Python 3.12.
+- The eval has been re-run if any trigger in docs/EVAL.md applies, or the reason
+  it was not is recorded in eval/BASELINE_NOTES.md under the conditions set out
+  in "When a change cannot affect the measurement" in docs/EVAL.md.
+- If a run happened, its results CSV and the notebook outputs are committed and
+  BASELINE_NOTES.md records the figures.
+- The CI ratchet in `.github/workflows/tests.yml` names the two most recent runs.
+- Deployed Foundry agent prompts match the repository. Agents are fetched by name
+  and reused, so a prompt edit is inert until the agent is deleted and recreated.
+  Check all four, not the one that changed.
+
+## Branching
+
+Work happens on `Dev`. Pull requests go from `Dev` into `Main`. CI runs on push
+to `Dev` and on pull requests targeting `Main`.
