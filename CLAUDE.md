@@ -21,8 +21,18 @@ file, and what actually shipped is in docs/ARCHITECTURE.md.
   logical change per commit.
 - Never include "Co-Authored-By: Claude" or any AI attribution
   in commit messages.
-- Never use em-dashes, or the words "mentor", "capstone",
-  "Day N", "revised", or "NEW" in any file or commit message.
+- Never use em-dashes, or the words "mentor", "capstone", "revised",
+  or "Day N" and "NEW" as markers, in authored prose: source, tests,
+  docs, README, notebook cell source, and commit messages. Naming a
+  banned word in quotes is a mention rather than a use, which is how
+  this rule states what it bans. A word inside the name of a file that
+  exists in the repository is a path reference, not prose:
+  docs/CAPSTONE_ASSESSMENT.md is linked from README, and renaming it to
+  get a word out of a filename would break those links for no gain.
+  Recorded model output is never edited to satisfy a style rule, which
+  covers eval/results_*.csv and notebook cell outputs. Em-dashes have no
+  exemption; this rule names one without containing one.
+  `scripts/check_style.py` enforces all of the above and runs in CI.
 - Always run git status before starting new work to verify a
   clean working tree.
 - At the start of a session, run `git log` against the last commit

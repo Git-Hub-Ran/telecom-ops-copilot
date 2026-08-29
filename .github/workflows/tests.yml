@@ -27,6 +27,12 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
+      # Enforces the style rule in CLAUDE.md. Everything the check skips is
+      # skipped on a stated principle rather than a list of files, so adding a
+      # file never means adding an exemption. See the module docstring.
+      - name: Check authored prose for banned style
+        run: python scripts/check_style.py
+
       # Re-scores two committed results CSVs against each other with a 1.5pp
       # buffer. This catches bugs in scoring logic and corruption of the
       # committed CSVs. It CANNOT detect regressions in the classifier, routing,
