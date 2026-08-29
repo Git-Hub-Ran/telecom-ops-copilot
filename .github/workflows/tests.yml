@@ -34,6 +34,8 @@ jobs:
       # need Azure credentials and a ~20 minute eval run, neither of which CI
       # has. The eval is run manually before merging; see docs/EVAL.md.
       # After each eval re-run, move the second path to the new results file
-      # and the --baseline to the prior one.
+      # and the --baseline to the prior one. This is the step people forget: it
+      # has been missed after four consecutive runs, leaving the gate comparing
+      # artifacts that were four runs old while still reporting green.
       - name: Verify eval scoring integrity
-        run: python scripts/score_eval.py --baseline eval/results_20260819_1110.csv eval/results_20260823_1802.csv
+        run: python scripts/score_eval.py --baseline eval/results_20260828_1728.csv eval/results_20260829_1608.csv
