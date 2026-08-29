@@ -464,6 +464,68 @@ Revisit when grounding faithfulness is computed; the three blockers are in
 info rows, promotion becomes a measurable question rather than a judgement: run it,
 compare the score before and after, and keep it only if grounding holds.
 
+## Run 9 (2026-08-29): escalate-agent redeployed, nothing measured moved
+
+Run 9 is the first run with `escalate-agent` recreated from the committed prompt.
+Every scored metric is identical to run 8: intent 89.0%, tool selection 82.0%,
+escalation precision 92.3%, recall 85.7%, TP=12 FP=1 FN=2, zero errors.
+
+Identical aggregates are not identical rows. ADV-003 moved from `escalate` to
+`unknown`, which is correct, and ADV-008 moved from `unknown` to `technical`, which is
+not. The two cancel. That is the classifier non-determinism described below, and a
+reminder that a matching total does not mean a matching run.
+
+p95 measured 16367ms against run 8's 18847ms. That is not a redeploy effect. It sits
+inside the 14.5 to 21.1 second band the committed runs already span, and one run
+cannot separate a change from that spread.
+
+### Eight runs measured an escalate prompt the repository had replaced
+
+This applies to `escalate-agent` alone. When all four agents were checked against the
+repository before run 9, `classifier-agent`, `act-agent` and `respond-agent` matched;
+only `escalate-agent` did not.
+
+It was created 2026-07-01 and never recreated, carrying the 3250-character
+full-payload prompt that commit 98dde4d replaced on 2026-08-07 with the 940-character
+two-field contract. Every run from the July 1 baseline through run 8 therefore
+measured an escalate prompt that had not been in the repository for three weeks.
+
+No escalation figure is invalidated. `actual_escalation` records whether a ticket
+persisted, and nothing the escalate agent returns can change that. `escalate.py` reads
+only `summary` and `suggested_next_action`; a parse failure substitutes canned strings
+and still creates the ticket; `respond.py` surfaces only `success` and the reference
+number, never the summary. What is invalidated is the claim that those runs measured
+the committed escalate prompt.
+
+### Why it was invisible
+
+`_build_agent_prompt` ends every request with the two-field contract in the user
+message. The correct instruction therefore reached the model on every call, whichever
+system prompt was deployed, which is why replacing a 3250-character prompt with a
+940-character one changed almost nothing.
+
+Run 9 measures that directly. Pairing all 13 escalations against run 8 on the same
+customer message, summary length moved by a median of -8 characters and a mean of -2,
+on a per-ticket range of -75 to +55, with 5 of 13 longer. `suggested_next_action` rose
+by a median of 13, which at this sample size and spread is not a result worth claiming.
+Neither run produced a fallback summary. Style is indistinguishable: both open with the
+customer's state and note what was attempted.
+
+### A verification covering one of four agents is not a verification
+
+The run 6 section records `classifier-agent` verified against the repo prompt, and that
+check was real. It covered one agent. The other three were never checked, and the
+escalate gap survived eight runs behind it.
+
+The reason it survived generalises. The failure was silent by construction. The extra
+fields the stale prompt requested were discarded by Python, which is what made the
+mismatch harmless; a parse failure would have produced a ticket anyway, which is what
+made it undetectable. The properties that made it safe to ignore are exactly the
+properties that made it impossible to notice. A deployment mismatch that degrades
+gracefully leaves no trace in the metrics, so it will not surface from reading run
+data. It surfaces only from comparing deployed instructions against the repository, for
+every agent, not for the one that changed most recently.
+
 ## Classifier non-determinism and run-to-run variance
 
 The same query can be classified differently on two runs of identical code
