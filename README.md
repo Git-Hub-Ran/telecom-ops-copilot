@@ -82,7 +82,7 @@ prompt in `src/orchestrator/agents/prompts.py`, delete the corresponding agent i
 Azure Foundry portal so it is recreated with the updated instructions on the next run.
 Agent names: `classifier-agent`, `act-agent`, `escalate-agent`, `respond-agent`.
 
-**Tests:** No Azure credentials required. All 330 tests use mocks.
+**Tests:** No Azure credentials required. Every test uses mocks.
 
 ```bash
 pytest tests/
@@ -109,16 +109,18 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 | Metric | Score | Target | Status |
 |---|---|---|---|
-| Intent accuracy | 87.0% | >=90% | FAIL |
-| Tool selection | 81.5% | >=85% | FAIL |
+| Intent accuracy | 89.0% | >=90% | FAIL |
+| Tool selection | 82.0% | >=85% | FAIL |
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
-| Latency p95 | ~14s | <=5s | FAIL (structural, see below) |
+| Latency p95 | ~16s | <=5s | FAIL (structural, see below) |
 | Deflection rate | 92.9% | 30-40% | -- |
 
-Figures are from run 5 (2026-08-23); intent accuracy is one query below run 4 and
-tool selection half a point below, within the variance described in
-[`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
+Figures are from run 9 (2026-08-29), the first run in which all four deployed Foundry
+agents matched their committed prompts. Its scored metrics are identical to run 8.
+The committed notebook holds this run's outputs, so its cells show the same figures.
+See [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md) for the run history and the
+variance discussion.
 
 Intent accuracy uses exact label matching. Of the five injection attempts, two route
 directly to a human agent and one is refused as off-topic. Two (ADV-002, ADV-004)
@@ -133,14 +135,14 @@ classification flip moves recall by roughly 7 points. See
 discussion before citing these figures.
 
 Remaining intent failures are hard adversarial cases (extreme vagueness,
-multi-intent queries, abusive phrasing) and two genuine boundary ambiguities
-between `info` and `account`. Tool selection failures follow directly from
-intent misclassification. Full failure analysis in
+multi-intent queries, abusive phrasing) and genuine boundary ambiguities between
+`info`, `account` and `billing`, which are the rows that flip between runs. Tool
+selection failures follow directly from intent misclassification. Full analysis in
 [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 
 ## Known constraints
 
-**Latency:** p50 is approximately 8s; p95 is approximately 14s. A turn requires one
+**Latency:** p50 is approximately 8s; p95 is approximately 16s. A turn requires one
 to four sequential Foundry agent runs depending on the path, and each run involves
 polling until completion (create thread, post message, start run, poll, fetch
 response). The spread is what separates p50 from p95: a refusal or clarifying

@@ -6,7 +6,8 @@ actually shipped, and docs/WRITEUP.md for design decisions made along the way.
 Known deltas: frontend deployed as local Streamlit not Hugging Face Spaces;
 orchestration is a custom Python state machine not Microsoft Agent Framework; tools
 are local Python functions not Azure Functions; the knowledge base has 17 documents
-in 4 folders, not 16 in 3.
+in 4 folders, not 16 in 3; classification uses 6 intents (billing, technical, account,
+info, escalate, unknown), not the 5 listed here.
 
 The body is left as it was written before the build. Do not correct a figure in it to
 match what shipped: a silent edit makes the surrounding text ambiguous, because a

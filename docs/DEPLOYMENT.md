@@ -166,7 +166,7 @@ to `json`.
 
 ## 7. Running tests
 
-No Azure credentials are required. All 330 tests use mocks or local fixtures.
+No Azure credentials are required. Every test uses mocks or local fixtures.
 
 ```bash
 pytest tests/
