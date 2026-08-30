@@ -222,6 +222,12 @@ A Colab notebook at `notebooks/03-evaluation.ipynb` does the following:
 5. Output `eval/results_YYYYMMDD_HHMM.csv` with per-query and aggregate scores
 6. Generate failure analysis: top categories of failed queries
 
+Results CSVs are committed by default. The rule they replaced ignored every results
+file and re-admitted individual runs by name, so a run was committed only if someone
+remembered to add an exception, and two runs never were. Commit the notebook outputs
+with the CSV: a results CSV records only citations that survived validation, so
+dropped doc_ids and the structured log events exist nowhere else.
+
 ### The notebook reconstructs the pipeline, it does not call it
 
 Step 2 is an approximation. The notebook does not call `StateMachine.process_turn()`.

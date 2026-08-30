@@ -164,8 +164,8 @@ six runs. Nothing else differed: no escalation, citation, or other intent change
 
 Intent accuracy fell to 85.0% and tool selection to 80.5%, the latter entirely from
 STD-031 losing its account_path tool call. Run 6 fails the ratchet against run 5 on
-intent, 85.0% against an 85.5% threshold. The prompt change was reverted and run 5
-remains the stated baseline.
+intent, 85.0% against an 85.5% threshold. The prompt change was reverted, and run 5
+was the stated baseline at that point.
 
 What this rules out is prompt framing as a fix for this failure mode on gpt-4o-mini.
 Two untested alternatives remain: routing a classify failure to escalation instead of
@@ -336,10 +336,10 @@ question directly instead of requiring STD-029 as a proxy.
 
 ## Run 8 (2026-08-28): the reverted state measured, and a fourth run without fabrication
 
-Run 8 is the first run to measure the state after the ff7c75b revert, and it is the
-stated baseline. Intent accuracy 89.0%, tool selection 82.0%, escalation precision
-92.3% (12/13) and recall 85.7% (12/14), deflection 92.9% over the 70 standard queries,
-p95 approximately 19s. No row recorded an error.
+Run 8 is the first run to measure the state after the ff7c75b revert, and it became
+the stated baseline on the strength of that. Intent accuracy 89.0%, tool selection
+82.0%, escalation precision 92.3% (12/13) and recall 85.7% (12/14), deflection 92.9%
+over the 70 standard queries, p95 approximately 19s. No row recorded an error.
 
 ### The escalations recovered
 
