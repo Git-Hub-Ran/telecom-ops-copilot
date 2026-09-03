@@ -35,6 +35,17 @@ file, and what actually shipped is in docs/ARCHITECTURE.md.
   `scripts/check_style.py` enforces all of the above and runs in CI.
 - Always run git status before starting new work to verify a
   clean working tree.
+- Never run a command that discards uncommitted work: `git checkout --`,
+  `git restore`, `git reset --hard`, `git clean`. These restore from the
+  index or from HEAD, so they delete unstaged edits with no warning and
+  no recovery. Reaching for one to undo a temporary edit destroys every
+  other unstaged change in the same file, including work from earlier in
+  the session that had nothing to do with the experiment. To undo an
+  edit, copy the file somewhere first and restore from the copy, or edit
+  it forward to the state you want. When a temporary edit is needed to
+  demonstrate something, copy the file before changing it. If one of
+  these commands is genuinely the only option, say so and get explicit
+  approval first, the same as for a commit.
 - At the start of a session, run `git log` against the last commit
   you remember before reasoning about the current state. Work lands
   between sessions, and a stale picture produces confident wrong
