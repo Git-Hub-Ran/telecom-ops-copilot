@@ -29,6 +29,7 @@ nothing here depends on line numbers.
 """
 
 import os
+import posixpath
 import re
 import subprocess
 import sys
@@ -201,15 +202,14 @@ def normalise_target(target: str) -> str:
     Markdown allows the same destination to be written several ways, and a
     check that only understood one of them would fail on a link that is
     perfectly correct. Handles <angle brackets>, a "quoted title" after the
-    path, a #fragment, and a leading ./ prefix.
+    path and a #fragment; posixpath.normpath then collapses ./ and //, so
+    the separator forms do not each need their own case here.
     """
     target = target.strip()
     if target.startswith("<") and ">" in target:
         target = target[1 : target.index(">")]
     target = target.split(" ", 1)[0].split("#", 1)[0].strip()
-    while target.startswith("./"):
-        target = target[2:]
-    return target
+    return posixpath.normpath(target) if target else target
 
 
 def file_level_failures(entries, files, links) -> list[str]:
