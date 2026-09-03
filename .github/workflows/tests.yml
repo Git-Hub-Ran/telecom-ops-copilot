@@ -33,6 +33,15 @@ jobs:
       - name: Check authored prose for banned style
         run: python scripts/check_style.py
 
+      # Checks the README project structure block against git in both
+      # directions: every path listed must be tracked, and every tracked
+      # top-level and src/ directory must be listed. The block has drifted
+      # silently before, which is what this exists to stop. Resolution is
+      # against git ls-files, not the filesystem, so a path that exists only
+      # in a working tree does not satisfy an entry. See the module docstring.
+      - name: Check README structure block
+        run: python scripts/check_readme_structure.py
+
       # Re-scores two committed results CSVs against each other with a 1.5pp
       # buffer. This catches bugs in scoring logic and corruption of the
       # committed CSVs. It CANNOT detect regressions in the classifier, routing,

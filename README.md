@@ -196,6 +196,7 @@ kb/                            Knowledge base searched by the info path (17 docu
 scripts/
   score_eval.py                Scores a results CSV against thresholds or a prior run
   check_style.py               Enforces the CLAUDE.md style rule, runs in CI
+  check_readme_structure.py    Checks this block against git, runs in CI
 mock-data/                     JSON fixture files for tool functions
 notebooks/
   01-smoke-test.ipynb          Azure OpenAI reachability and grounded-answer check
