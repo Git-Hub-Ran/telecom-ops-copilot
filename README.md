@@ -197,6 +197,11 @@ scripts/
   score_eval.py                Scores a results CSV against thresholds or a prior run
   check_style.py               Enforces the CLAUDE.md style rule, runs in CI
   check_readme_structure.py    Checks this block against git, runs in CI
+  generate_mock_data.py        Generates the four mock-data JSON fixtures
+  setup_billing_db.py          Seeds data/billing.db from mock-data/billing.json
+  upload_kb_file.py            Uploads a single KB file to the Foundry vector store
+  build_smoke_test_notebook.py  Generates notebooks/01-smoke-test.ipynb
+  build_kb_upload_notebook.py  Generates notebooks/02-kb-upload-and-retrieval-test.ipynb
 mock-data/                     JSON fixture files for tool functions
 notebooks/
   01-smoke-test.ipynb          Azure OpenAI reachability and grounded-answer check

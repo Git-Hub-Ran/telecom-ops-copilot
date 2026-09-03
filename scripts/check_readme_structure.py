@@ -17,11 +17,12 @@ directory added to the repository that nobody documented. It is deliberately
 scoped to directories. Extending it to every file would flag each new test the
 moment it is added, which is noise rather than drift.
 
-Docs: every tracked docs/*.md must appear in the block AND in the Documentation
-link line below it. Documents are the exception to the directories-only rule
-above, because the README names them individually in two separate places and a
-new document is easy to add to one and forget in the other. The failure says
-which of the two lists is missing it.
+File level: the README names docs/*.md and scripts/*.py one by one, so those
+are checked as files rather than as directories. A document must appear in the
+block AND in the Documentation link line below it, because it is advertised in
+both and is easy to add to one and forget in the other; a script needs only the
+block. The failure says which list is missing it. IGNORED_DOCS is the escape
+hatch for a file that is deliberately not advertised.
 
 The block and the link line are both located by their surrounding text, so
 nothing here depends on line numbers.
@@ -39,12 +40,29 @@ LINK_MARKER = "**Documentation:**"
 # Markdown link targets, used to read the Documentation line.
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
+# Directories the README names file by file, as (directory, suffix, needs_link).
+# Everything else is checked at directory granularity by reverse_failures, which
+# is the right level for tests/ and for src/ subpackages. Only docs/ is repeated
+# in the Documentation line, so only docs/ needs the second list.
+FILE_LEVEL = [
+    ("docs", ".md", True),
+    ("scripts", ".py", False),
+]
+
 # Vendored tooling, not project structure. Both are checked into the repository
 # but describe how the project is authored rather than what it contains, which
 # is the same principle that excludes them in check_style.py. Nothing else needs
 # an entry: this check reads `git ls-files`, so .git/, .pytest_cache/, data/ and
 # every __pycache__ are invisible to it already by being untracked or ignored.
 IGNORED_DIRS = {".claude", ".specify"}
+
+# Escape hatch for the file-level check below. Put a path here when a tracked
+# file under a FILE_LEVEL directory is deliberately not advertised in the
+# README: an internal note, a scratch script, anything written for the author
+# rather than for a reader. Adding a path here is a decision to leave it
+# undocumented, so say why in a comment beside it. It is not the place to park
+# a file that simply has not been written up yet; document that one instead.
+IGNORED_DOCS: set[str] = set()
 
 
 class BlockNotFound(Exception):
@@ -173,28 +191,53 @@ def documentation_links(readme: str) -> set[str]:
     )
     targets = set()
     for line in lines[start:end]:
-        targets.update(LINK.findall(line))
+        targets.update(normalise_target(t) for t in LINK.findall(line))
     return targets
 
 
-def docs_failures(entries, files, links) -> list[str]:
-    """Tracked documents must be in both the block and the link line."""
+def normalise_target(target: str) -> str:
+    """Reduce a markdown link target to a repository-relative path.
+
+    Markdown allows the same destination to be written several ways, and a
+    check that only understood one of them would fail on a link that is
+    perfectly correct. Handles <angle brackets>, a "quoted title" after the
+    path, a #fragment, and a leading ./ prefix.
+    """
+    target = target.strip()
+    if target.startswith("<") and ">" in target:
+        target = target[1 : target.index(">")]
+    target = target.split(" ", 1)[0].split("#", 1)[0].strip()
+    while target.startswith("./"):
+        target = target[2:]
+    return target
+
+
+def file_level_failures(entries, files, links) -> list[str]:
+    """Files the README names individually must actually be named there."""
     listed = {path for path, _ in entries}
     out = []
     for path in sorted(files):
+        if path in IGNORED_DOCS:
+            continue
         parts = path.split("/")
-        if len(parts) != 2 or parts[0] != "docs" or not path.endswith(".md"):
+        matched = [
+            needs_link
+            for directory, suffix, needs_link in FILE_LEVEL
+            if len(parts) == 2 and parts[0] == directory and path.endswith(suffix)
+        ]
+        if not matched:
             continue
         missing = []
         if path not in listed:
             missing.append("the structure block")
-        if path not in links:
+        if matched[0] and path not in links:
             missing.append(f"the {LINK_MARKER} line")
         if missing:
             out.append(
                 f"{path}: tracked but missing from {' and '.join(missing)}.\n"
-                f"    The README names every document in both places; add it to "
-                f"{'both' if len(missing) > 1 else 'the one above'}."
+                f"    The README names these individually; add it to "
+                f"{'both' if len(missing) > 1 else 'the one above'}, or to "
+                f"IGNORED_DOCS in this script if it is deliberately private."
             )
     return out
 
@@ -274,7 +317,7 @@ def main() -> int:
     failures = (
         forward_failures(entries, files, dirs)
         + reverse_failures(entries, files)
-        + docs_failures(entries, files, links)
+        + file_level_failures(entries, files, links)
     )
     if failures:
         print(f"{len(failures)} project structure problem(s):\n")
