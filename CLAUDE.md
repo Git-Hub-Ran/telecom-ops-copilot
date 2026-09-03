@@ -43,9 +43,10 @@ file, and what actually shipped is in docs/ARCHITECTURE.md.
   the session that had nothing to do with the experiment. To undo an
   edit, copy the file somewhere first and restore from the copy, or edit
   it forward to the state you want. When a temporary edit is needed to
-  demonstrate something, copy the file before changing it. If one of
-  these commands is genuinely the only option, say so and get explicit
-  approval first, the same as for a commit.
+  demonstrate something, copy the file before changing it. This rule has
+  no exception. If one of these commands looks like the only option, stop
+  and ask rather than running it, and do not treat the request as
+  approval to run it: describe the situation and let the user decide.
 - At the start of a session, run `git log` against the last commit
   you remember before reasoning about the current state. Work lands
   between sessions, and a stale picture produces confident wrong
