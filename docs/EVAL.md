@@ -213,7 +213,7 @@ The full set lives in `eval/golden_set.csv`. Each row has:
 
 ## How to run the evaluation
 
-A Colab notebook at `notebooks/03-evaluation.ipynb` does the following:
+Run `notebooks/03-evaluation.ipynb` in Google Colab. It does the following:
 
 1. Load `eval/golden_set.csv`
 2. For each query, run the full agent pipeline (orchestrator + Foundry agents + tools)
