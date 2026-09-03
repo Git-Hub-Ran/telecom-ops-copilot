@@ -14,11 +14,17 @@ in the working tree, untracked or gitignored, fails rather than passes.
 Reverse: every tracked top-level directory and every tracked subdirectory of
 src/ must appear somewhere in the block. This catches the opposite drift, a
 directory added to the repository that nobody documented. It is deliberately
-scoped to directories. Extending it to files would flag every new document and
-test the moment it is added, which is noise rather than drift.
+scoped to directories. Extending it to every file would flag each new test the
+moment it is added, which is noise rather than drift.
 
-The block is located by its heading and the following fence, so nothing here
-depends on line numbers.
+Docs: every tracked docs/*.md must appear in the block AND in the Documentation
+link line below it. Documents are the exception to the directories-only rule
+above, because the README names them individually in two separate places and a
+new document is easy to add to one and forget in the other. The failure says
+which of the two lists is missing it.
+
+The block and the link line are both located by their surrounding text, so
+nothing here depends on line numbers.
 """
 
 import os
@@ -28,6 +34,10 @@ import sys
 
 HEADING = "## Project structure"
 FENCE = "```"
+LINK_MARKER = "**Documentation:**"
+
+# Markdown link targets, used to read the Documentation line.
+LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 # Vendored tooling, not project structure. Both are checked into the repository
 # but describe how the project is authored rather than what it contains, which
@@ -142,6 +152,53 @@ def block_entries(readme: str) -> list[tuple[str, bool]]:
     return entries
 
 
+def documentation_links(readme: str) -> set[str]:
+    """Link targets in the Documentation paragraph below the block.
+
+    The paragraph runs from the marker to the next blank line, so it may wrap
+    across as many lines as it likes.
+    """
+    lines = readme.splitlines()
+    start = next(
+        (i for i, l in enumerate(lines) if l.strip().startswith(LINK_MARKER)), None
+    )
+    if start is None:
+        raise BlockNotFound(
+            f"README.md has no {LINK_MARKER!r} line.\n"
+            f"    This check reads the documentation links from that paragraph. "
+            f"If it was renamed, update LINK_MARKER in this script to match."
+        )
+    end = next(
+        (i for i in range(start, len(lines)) if not lines[i].strip()), len(lines)
+    )
+    targets = set()
+    for line in lines[start:end]:
+        targets.update(LINK.findall(line))
+    return targets
+
+
+def docs_failures(entries, files, links) -> list[str]:
+    """Tracked documents must be in both the block and the link line."""
+    listed = {path for path, _ in entries}
+    out = []
+    for path in sorted(files):
+        parts = path.split("/")
+        if len(parts) != 2 or parts[0] != "docs" or not path.endswith(".md"):
+            continue
+        missing = []
+        if path not in listed:
+            missing.append("the structure block")
+        if path not in links:
+            missing.append(f"the {LINK_MARKER} line")
+        if missing:
+            out.append(
+                f"{path}: tracked but missing from {' and '.join(missing)}.\n"
+                f"    The README names every document in both places; add it to "
+                f"{'both' if len(missing) > 1 else 'the one above'}."
+            )
+    return out
+
+
 def forward_failures(entries, files, dirs) -> list[str]:
     known = set(files)
     out = []
@@ -207,12 +264,18 @@ def main() -> int:
         files = tracked_files(root)
         dirs = tracked_dirs(files)
         with open(os.path.join(root, "README.md"), encoding="utf-8") as fh:
-            entries = block_entries(fh.read())
+            readme = fh.read()
+        entries = block_entries(readme)
+        links = documentation_links(readme)
     except BlockNotFound as exc:
         print(f"1 project structure problem(s):\n\n{exc}")
         return 1
 
-    failures = forward_failures(entries, files, dirs) + reverse_failures(entries, files)
+    failures = (
+        forward_failures(entries, files, dirs)
+        + reverse_failures(entries, files)
+        + docs_failures(entries, files, links)
+    )
     if failures:
         print(f"{len(failures)} project structure problem(s):\n")
         for f in failures:
