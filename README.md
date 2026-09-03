@@ -182,6 +182,8 @@ src/
     observability/
       structured.py            Structured JSON logging to stdout (FR-047 to FR-052)
   tools/                       Python tool functions (billing, account, diagnostic, outage, escalation)
+  data/
+    billing_data_source.py     BillingDataSource Protocol, with JSON and SQLite implementations
   ui/
     app.py                     Streamlit chat interface
 
@@ -189,9 +191,15 @@ tests/                         Unit test suite, no Azure dependency
 eval/
   golden_set.csv               100-query evaluation set
   BASELINE_NOTES.md            Eval scores and failure analysis
+  results_*.csv                Committed results, one per run
+kb/                            Knowledge base searched by the info path (17 documents, 4 folders)
+scripts/
+  score_eval.py                Scores a results CSV against thresholds or a prior run
+  check_style.py               Enforces the CLAUDE.md style rule, runs in CI
 mock-data/                     JSON fixture files for tool functions
 notebooks/
   03-evaluation.ipynb          End-to-end eval runner
+.github/workflows/tests.yml    CI: tests, style check, eval scoring integrity
 docs/
   ARCHITECTURE.md
   BUSINESS_CASE.md
