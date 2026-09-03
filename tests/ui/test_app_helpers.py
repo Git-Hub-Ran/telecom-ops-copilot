@@ -72,6 +72,42 @@ class TestRenderAgentTextImageStripping:
         result = _render_agent_text("Hello.\n\n[b]: https://attacker.test/track.png")
         assert "attacker.test" not in result
 
+    @pytest.mark.parametrize(
+        "definition",
+        [
+            "[b]: <https://attacker.test/track.png>",
+            '[b]: https://attacker.test/track.png "a) title"',
+            "[b]: https://attacker.test/track.png 'title'",
+            "[b]: https://attacker.test/track.png (title)",
+        ],
+    )
+    def test_definition_with_title_or_angle_destination_is_removed(
+        self, definition: str
+    ) -> None:
+        """A destination may be bracketed and may carry a title of any quoting."""
+        result = _render_agent_text(f"See ![beacon][b] here.\n\n{definition}")
+        assert "attacker.test" not in result
+
+
+class TestRenderAgentTextKeepsProse:
+    """A sentence shaped like a definition is prose, and must reach the customer."""
+
+    def test_bracketed_lead_in_with_trailing_prose_survives(self) -> None:
+        """Trailing prose means the line is not a definition. It was being deleted."""
+        text = "Your bill is ready.\n[Note]: payment is due on the 15th.\nThanks!"
+        assert _render_agent_text(text) == text
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "[Note]: payment is due on the 15th.",
+            "[Important]: call us before Friday to avoid a late fee.",
+            "[Tip]: try restarting the router first.",
+        ],
+    )
+    def test_prose_after_the_destination_is_not_a_definition(self, text: str) -> None:
+        assert _render_agent_text(text) == text
+
 
 class TestRenderAgentTextPreservesFormatting:
     """Markdown the KB answers depend on must survive untouched."""

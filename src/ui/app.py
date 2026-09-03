@@ -37,7 +37,18 @@ _MD_IMAGE = re.compile(r"!\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])?")
 # makes ![alt][ref] resolve to a URL, so stripping images is incomplete without
 # them. Removing these also breaks reference-style links, which degrade to plain
 # text; inline links are untouched.
-_MD_REF_DEF = re.compile(r"(?m)^[ \t]*\[[^\]]+\]:[ \t]*\S+.*$\n?")
+#
+# The line must be a definition and nothing else: a destination, then at most a
+# title. An earlier version ended in `.*$`, which swallowed any trailing prose
+# and so deleted an ordinary sentence such as "[Note]: payment is due on the
+# 15th." from a customer reply. Prose after the destination means the line is
+# not a definition, and CommonMark renders it as the text it is.
+_MD_REF_DEF = re.compile(
+    r"(?m)^[ \t]*\[[^\]]+\]:[ \t]*"
+    r"(?:<[^>\n]*>|\S+)"
+    r"(?:[ \t]+(?:\"[^\"\n]*\"|'[^'\n]*'|\([^)\n]*\)))?"
+    r"[ \t]*$\n?"
+)
 
 
 def _render_agent_text(text: str) -> str:
