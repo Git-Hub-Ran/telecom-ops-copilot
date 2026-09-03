@@ -198,6 +198,8 @@ scripts/
   check_style.py               Enforces the CLAUDE.md style rule, runs in CI
 mock-data/                     JSON fixture files for tool functions
 notebooks/
+  01-smoke-test.ipynb          Azure OpenAI reachability and grounded-answer check
+  02-kb-upload-and-retrieval-test.ipynb  Foundry vector store build and retrieval test
   03-evaluation.ipynb          End-to-end eval runner
 .github/workflows/tests.yml    CI: tests, style check, eval scoring integrity
 docs/
