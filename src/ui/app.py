@@ -51,17 +51,33 @@ _MD_REF_DEF = re.compile(
 )
 
 
+def _strip_images(text: str) -> str:
+    """Collapse Markdown images to their alt text until none is left.
+
+    One pass is not enough. Against a nested image the pattern consumes the
+    inner brackets and can leave a live image behind: `![![x](in.png)](out.png)`
+    becomes `![x](out.png)`, which still fetches. Each pass removes at least the
+    `![` and `]` of one image, so the text strictly shortens and this ends.
+    """
+    while True:
+        collapsed = _MD_IMAGE.sub(r"\1", text)
+        if collapsed == text:
+            return collapsed
+        text = collapsed
+
+
 def _render_agent_text(text: str) -> str:
     """Prepare agent output for Markdown rendering.
 
     Escapes $ so amounts are not parsed as LaTeX, and strips Markdown image
     syntax, which Streamlit renders as an <img> that fetches its URL on display.
     All four image forms are covered (inline, full reference, collapsed, and
-    shortcut) along with the reference definitions that resolve them. The alt
-    text is kept so nothing silently disappears from the reply. Inline links and
-    the rest of the Markdown are preserved: KB answers use bullets and bold.
+    shortcut), nested to any depth, along with the reference definitions that
+    resolve them. The alt text is kept so nothing silently disappears from the
+    reply. Inline links and the rest of the Markdown are preserved: KB answers
+    use bullets and bold.
     """
-    stripped = _MD_REF_DEF.sub("", _MD_IMAGE.sub(r"\1", text))
+    stripped = _MD_REF_DEF.sub("", _strip_images(text))
     return stripped.replace("$", r"\$")
 
 

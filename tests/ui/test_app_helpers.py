@@ -89,6 +89,32 @@ class TestRenderAgentTextImageStripping:
         assert "attacker.test" not in result
 
 
+class TestRenderAgentTextNestedImages:
+    """A nested image survives a single collapsing pass, so the pass repeats."""
+
+    def test_nested_inline_image_leaves_no_image(self) -> None:
+        """The outer URL is inline, so no definition removal can cover this."""
+        result = _render_agent_text(
+            "![![x](https://attacker.test/in.png)](https://attacker.test/out.png)"
+        )
+        assert "![" not in result
+        assert "attacker.test" not in result
+
+    def test_nested_reference_image_leaves_no_image(self) -> None:
+        result = _render_agent_text(
+            "![![x][a]][b]\n\n[b]: https://attacker.test/out.png"
+        )
+        assert "![" not in result
+        assert "attacker.test" not in result
+
+    def test_triple_nested_image_leaves_no_image(self) -> None:
+        result = _render_agent_text(
+            "![![![x](1.png)](2.png)](https://attacker.test/3.png)"
+        )
+        assert "![" not in result
+        assert "attacker.test" not in result
+
+
 class TestRenderAgentTextKeepsProse:
     """A sentence shaped like a definition is prose, and must reach the customer."""
 
