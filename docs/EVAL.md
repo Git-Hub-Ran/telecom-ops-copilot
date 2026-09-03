@@ -289,12 +289,20 @@ The full eval is re-run:
 
 The intent is that the evaluation is the gating signal for shipping. A change that lowers the metrics is rolled back, not merged.
 
-### The eval is not re-run in CI
+### What a re-run requires, and why CI cannot do it
 
-CI does not run the evaluation. A fresh measurement needs Azure credentials and
-roughly twenty minutes of Foundry agent calls, neither of which is available on a
-GitHub runner. The `Verify eval scoring integrity` step in `.github/workflows/tests.yml`
-re-scores two committed results CSVs against each other; it catches bugs in
+Reproducing any figure in this document takes more than a checkout. The runner is
+`notebooks/03-evaluation.ipynb` in Google Colab, and a run needs an Azure AI Foundry
+project reachable from that notebook, the four deployed agents matching the committed
+prompts, the vector store named by `VECTOR_STORE_ID`, and an interactive device-code
+sign-in at the start of the session. A full pass costs roughly twenty minutes of
+sequential Foundry calls.
+
+No part of that runs from CI or from a clone on its own. `pytest tests/ -q` mocks
+every Azure call and measures nothing about quality; a GitHub runner has no
+credentials, no vector store, and no way to answer a device-code prompt. The
+`Verify eval scoring integrity` step in `.github/workflows/tests.yml` re-scores two
+committed results CSVs against each other instead. It catches bugs in
 `scripts/score_eval.py` and corruption of the committed artifacts, but both inputs
 are static files, so it cannot detect a regression in the classifier, routing, or a
 tool function.
@@ -302,7 +310,8 @@ tool function.
 That makes the re-run list above a manual process, not an automated gate. A change
 matching any of those conditions needs an eval run and a review of the resulting
 metrics before merge. The committed results CSVs and `eval/BASELINE_NOTES.md` are
-the record of those runs.
+the record of those runs, and they are the evidence precisely because nothing
+automated can regenerate them.
 
 ### When a change cannot affect the measurement
 
