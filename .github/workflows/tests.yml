@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - Dev
+      # Main is here for the merge commit itself. A pull_request run tests the
+      # merge preview, not the commit that lands, and the README badge reports
+      # on Main's latest run, so without this the badge has no run to describe.
+      - Main
   pull_request:
     branches:
       - Main
