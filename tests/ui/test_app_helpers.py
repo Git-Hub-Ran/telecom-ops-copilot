@@ -88,6 +88,28 @@ class TestRenderAgentTextImageStripping:
         result = _render_agent_text(f"See ![beacon][b] here.\n\n{definition}")
         assert "attacker.test" not in result
 
+    def test_angle_destination_containing_a_space_is_removed(self) -> None:
+        """Angle brackets are what make a space legal in a destination."""
+        result = _render_agent_text(
+            "See ![beacon][b] here.\n\n[b]: <https://attacker.test/a b.png>"
+        )
+        assert "attacker.test" not in result
+        assert result == "See beacon here.\n\n"
+
+    @pytest.mark.parametrize("title", ['"the title"', "'the title'", "(the title)"])
+    def test_title_on_the_following_line_still_loses_its_url(self, title: str) -> None:
+        """CommonMark allows the title to sit on the next line.
+
+        The pattern is single-line, so the destination line goes and the title
+        line is left behind as visible text. That residue is cosmetic: the URL,
+        which is the part that would fetch, is gone either way.
+        """
+        result = _render_agent_text(
+            f"See ![beacon][b] here.\n\n[b]: https://attacker.test/t.png\n  {title}"
+        )
+        assert "attacker.test" not in result
+        assert result == f"See beacon here.\n\n  {title}"
+
 
 class TestRenderAgentTextNestedImages:
     """A nested image survives a single collapsing pass, so the pass repeats."""
