@@ -300,7 +300,7 @@ Once set, the account ID persists across turns and is not overwritten by
 subsequent messages.
 
 **Latency constraint from Foundry polling architecture.** The p95 latency has
-measured between 14.5 and 21.1 seconds across the committed runs. Each Foundry
+measured between 14.5 and 21.1 seconds across the nine numbered runs. Each Foundry
 agent run requires at minimum four HTTP round trips: create thread, post message,
 start run, poll until complete, fetch response. A turn makes one to four sequential
 agent runs depending on the path, and on the longer paths the latency budget is

@@ -29,9 +29,9 @@ measure the committed state.
 Intent accuracy of 89.0% matches run 3 and run 8 and is the highest recorded, one
 query above run 4 and two above run 5. Tool selection is half a point above run 5.
 Escalation precision and recall are unchanged in value from run 5, but run 7 had
-driven precision to 66.7% and runs 8 and 9 hold it. Deflection is measured over the
-70 standard queries, 65 of which resolved without escalation. Latency p95 sits inside
-the 14.5 to 21.1 second band the committed runs span. Escalation figures vary between
+driven precision to 66.7% and runs 8 and 9 hold it. Deflection is measured over the 70
+standard queries, 65 of which resolved without escalation. Latency p95 sits inside the
+14.5 to 21.1 second band the nine numbered runs span. Escalation figures vary between
 runs; see "Classifier non-determinism and run-to-run variance" below before citing
 them, and note that run 9 matched run 8's totals while two rows swapped underneath.
 
@@ -483,7 +483,7 @@ not. The two cancel. That is the classifier non-determinism described below, and
 reminder that a matching total does not mean a matching run.
 
 p95 measured 16367ms against run 8's 18847ms. That is not a redeploy effect. It sits
-inside the 14.5 to 21.1 second band the committed runs already span, and one run
+inside the 14.5 to 21.1 second band the nine numbered runs already span, and one run
 cannot separate a change from that spread.
 
 ### Eight runs measured an escalate prompt the repository had replaced
@@ -726,11 +726,11 @@ at run time against the labels in force then.
 
 Figures are from run 9. The first row of every run carries agent provisioning and
 device-code authentication, so it is not comparable to the rest. STD-001 has measured
-between 36.6s and 726s across all fifteen committed runs, and the figure tracks how much setup
-that particular start happened to do rather than anything about the query. It sits far
-enough into the tail not to move p95, but it does distort any mean. There is no single
-figure to contrast it with: the slowest remaining row ranges from 16.6s to 107.7s
-across those runs.
+between 36.6s and 726s across all fifteen committed runs, and the figure tracks how
+much setup that particular start happened to do rather than anything about the query.
+It sits far enough into the tail not to move p95, but it does distort any mean. There
+is no single figure to contrast it with: the slowest remaining row ranges from 16.6s
+to 107.7s across those runs.
 
 Provisioning does not account for the whole tail. Run 9's slowest row is not STD-001,
 which recorded 40.9s, but STD-069, "Please escalate my case. I have been trying to get
