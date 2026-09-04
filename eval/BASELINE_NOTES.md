@@ -726,10 +726,21 @@ at run time against the labels in force then.
 
 Figures are from run 9. The first row of every run carries agent provisioning and
 device-code authentication, so it is not comparable to the rest. STD-001 has measured
-between 36.6s and 726s across the committed runs, against a next-highest of roughly
-17s in the same runs, and the figure tracks how much setup that particular start
-happened to do rather than anything about the query. It sits far enough into the tail
-not to move p95, but it does distort any mean.
+between 36.6s and 726s across all fifteen committed runs, and the figure tracks how much setup
+that particular start happened to do rather than anything about the query. It sits far
+enough into the tail not to move p95, but it does distort any mean. There is no single
+figure to contrast it with: the slowest remaining row ranges from 16.6s to 107.7s
+across those runs.
+
+Provisioning does not account for the whole tail. Run 9's slowest row is not STD-001,
+which recorded 40.9s, but STD-069, "Please escalate my case. I have been trying to get
+this resolved for weeks.", at 50.8s. It is a `skip_to_escalate` turn that files a
+ticket and never reaches file search, and it is the only row above 30s in the nine
+numbered runs that is not a first row. Nothing about provisioning explains it: the
+other twelve `skip_to_escalate` rows in the same run range from 10.3s to 16.8s, so the
+path is not slow, this turn was. It sits among the five rows past the p95 rank and so
+leaves that figure unchanged, but a 50 second wait on an escalation is a customer
+facing outcome in its own right, and the cause is not diagnosable from the CSV.
 
 Root cause: the Foundry Agents API polling model requires 4+ HTTP round trips per
 agent run (create thread, create message, start run, poll until complete, fetch
