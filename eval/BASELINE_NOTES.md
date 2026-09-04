@@ -564,11 +564,24 @@ the headline percentages, so single-run figures should be read as a range:
 | 4 | 2026-08-19 11:10 | 92.3% (12/13) | 85.7% (12/14) |
 | 5 | 2026-08-23 18:02 | 92.3% (12/13) | 85.7% (12/14) |
 | 6 | 2026-08-24 08:46 | 92.3% (12/13) | 85.7% (12/14) |
+| 7 | 2026-08-28 10:56 | 66.7% (12/18) | 85.7% (12/14) |
+| 8 | 2026-08-28 17:28 | 92.3% (12/13) | 85.7% (12/14) |
+| 9 | 2026-08-29 16:08 | 92.3% (12/13) | 85.7% (12/14) |
 
 Run 6 ran against a classifier prompt that was reverted afterwards; see the run 6
 section above. Its escalation figures are identical to run 5 regardless.
 
-Across six runs precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%.
+Run 7 ran against the total-fabrication branch from commit ff7c75b, reverted
+afterwards; see the run 7 section above. Its five extra false positives are code-path
+failures rather than classifier flips: STD-008, STD-013 and STD-020 lost every
+citation and were escalated by that branch, and STD-017 and ADV-020 hit a
+JSONDecodeError in `_run_info_path` and reached the exception handler. None is a row
+the classifier labelled differently, so run 7 measures a code change and is excluded
+from the precision span below. Its recall is unaffected and sits inside the range.
+
+Across the eight runs that measure classifier variance, runs 1 to 6 and runs 8 to 9,
+precision spans 85.7% to 92.3% and recall spans 78.6% to 85.7%. Including run 7 would
+widen precision to 66.7%, which would report a reverted branch as classifier noise.
 
 **The demonstration is run 1 to run 2.** ADV-001, an injection attempt, classified
 as `unknown` in run 1 and `escalate` in run 2 on identical query text and an
