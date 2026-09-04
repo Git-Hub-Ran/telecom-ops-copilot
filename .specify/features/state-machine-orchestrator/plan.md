@@ -1,5 +1,8 @@
 # Implementation Plan: State Machine Orchestrator
 
+**Note:** The figures in this document are as of June 2026, when it was written, and
+are not corrected after the fact; for the current test suite, run `pytest tests/ -q`.
+
 **Branch**: `Dev` (single working branch for this project) | **Date**: 2026-06-10 | **Spec**: [state-machine-orchestrator spec](./spec.md)
 
 **Input**: Feature specification from `.specify/features/state-machine-orchestrator/spec.md`
