@@ -1,0 +1,5 @@
+# Development and notebook dependencies
+-r requirements.txt
+pytest>=9.0.3,<10.0.0
+pytest-asyncio>=1.4.0,<2.0.0
+ragas>=0.2.0,<1.0.0

@@ -1,0 +1,60 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - Dev
+      # Main is here for the merge commit itself. A pull_request run tests the
+      # merge preview, not the commit that lands, and the README badge reports
+      # on Main's latest run, so without this the badge has no run to describe.
+      - Main
+  pull_request:
+    branches:
+      - Main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+      # Enforces the style rule in CLAUDE.md. Everything the check skips is
+      # skipped on a stated principle rather than a list of files, so adding a
+      # file never means adding an exemption. See the module docstring.
+      - name: Check authored prose for banned style
+        run: python scripts/check_style.py
+
+      # Checks the README project structure block against git in both
+      # directions: every path listed must be tracked, and every tracked
+      # top-level and src/ directory must be listed. The block has drifted
+      # silently before, which is what this exists to stop. Resolution is
+      # against git ls-files, not the filesystem, so a path that exists only
+      # in a working tree does not satisfy an entry. See the module docstring.
+      - name: Check README structure block
+        run: python scripts/check_readme_structure.py
+
+      # Re-scores two committed results CSVs against each other with a 1.5pp
+      # buffer. This catches bugs in scoring logic and corruption of the
+      # committed CSVs. It CANNOT detect regressions in the classifier, routing,
+      # or tools: both inputs are static files, and a fresh measurement would
+      # need Azure credentials and a ~20 minute eval run, neither of which CI
+      # has. The eval is run manually before merging; see docs/EVAL.md.
+      # After each eval re-run, move the second path to the new results file
+      # and the --baseline to the prior one. This is the step people forget: it
+      # has been missed after four consecutive runs, leaving the gate comparing
+      # artifacts that were four runs old while still reporting green.
+      - name: Verify eval scoring integrity
+        run: python scripts/score_eval.py --baseline eval/results_20260828_1728.csv eval/results_20260829_1608.csv

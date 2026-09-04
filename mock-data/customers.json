@@ -1,0 +1,595 @@
+[
+  {
+    "account_id": "ACC-10001",
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "phone_contact": "+1-555-100-0001",
+    "billing_zip": "10001",
+    "join_date": "2023-11-04",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10001-1",
+        "type": "mobile",
+        "plan_id": "essential",
+        "phone_number": "+1-555-001-1000",
+        "status": "active",
+        "activated_on": "2023-11-04"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0007"
+    },
+    "discounts": [
+      "autopay"
+    ]
+  },
+  {
+    "account_id": "ACC-10003",
+    "name": "Maria Garcia",
+    "email": "maria.garcia@example.com",
+    "phone_contact": "+1-555-100-0003",
+    "billing_zip": "60601",
+    "join_date": "2022-01-24",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10003-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-003-1000",
+        "status": "active",
+        "activated_on": "2022-01-24"
+      }
+    ],
+    "payment": {
+      "method": "manual",
+      "card_last_four": null
+    },
+    "discounts": []
+  },
+  {
+    "account_id": "ACC-10004",
+    "name": "David Lee",
+    "email": "david.lee@example.com",
+    "phone_contact": "+1-555-100-0004",
+    "billing_zip": "94103",
+    "join_date": "2024-05-08",
+    "status": "suspended",
+    "services": [
+      {
+        "line_id": "LINE-10004-1",
+        "type": "mobile",
+        "plan_id": "essential",
+        "phone_number": "+1-555-004-1000",
+        "status": "active",
+        "activated_on": "2024-05-08"
+      }
+    ],
+    "payment": {
+      "method": "manual",
+      "card_last_four": null
+    },
+    "discounts": []
+  },
+  {
+    "account_id": "ACC-10011",
+    "name": "Christopher Taylor",
+    "email": "christopher.taylor@example.com",
+    "phone_contact": "+1-555-100-0011",
+    "billing_zip": "80202",
+    "join_date": "2017-04-05",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10011-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-011-1000",
+        "status": "active",
+        "activated_on": "2017-04-05"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0077"
+    },
+    "discounts": [
+      "autopay"
+    ]
+  },
+  {
+    "account_id": "ACC-10015",
+    "name": "Mark White",
+    "email": "mark.white@example.com",
+    "phone_contact": "+1-555-100-0015",
+    "billing_zip": "37201",
+    "join_date": "2022-12-04",
+    "status": "suspended",
+    "services": [
+      {
+        "line_id": "LINE-10015-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-015-1000",
+        "status": "active",
+        "activated_on": "2022-12-04"
+      }
+    ],
+    "payment": {
+      "method": "manual",
+      "card_last_four": null
+    },
+    "discounts": []
+  },
+  {
+    "account_id": "ACC-10018",
+    "name": "Karen Thompson",
+    "email": "karen.thompson@example.com",
+    "phone_contact": "+1-555-100-0018",
+    "billing_zip": "63101",
+    "join_date": "2020-11-24",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10018-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-018-1000",
+        "status": "active",
+        "activated_on": "2020-11-24"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0126"
+    },
+    "discounts": [
+      "autopay"
+    ]
+  },
+  {
+    "account_id": "ACC-10002",
+    "name": "Sarah Johnson",
+    "email": "sarah.johnson@example.com",
+    "phone_contact": "+1-555-100-0002",
+    "billing_zip": "90210",
+    "join_date": "2021-09-03",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10002-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-002-1000",
+        "status": "active",
+        "activated_on": "2021-09-03"
+      },
+      {
+        "line_id": "LINE-10002-2",
+        "type": "home_internet",
+        "plan_id": "fiber_1000",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2021-09-03"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0014"
+    },
+    "discounts": [
+      "autopay",
+      "bundle"
+    ]
+  },
+  {
+    "account_id": "ACC-10005",
+    "name": "Emily Chen",
+    "email": "emily.chen@example.com",
+    "phone_contact": "+1-555-100-0005",
+    "billing_zip": "02115",
+    "join_date": "2022-10-14",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10005-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-005-1000",
+        "status": "active",
+        "activated_on": "2022-10-14"
+      },
+      {
+        "line_id": "LINE-10005-2",
+        "type": "home_internet",
+        "plan_id": "internet_100",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2022-10-14"
+      }
+    ],
+    "payment": {
+      "method": "autopay_bank",
+      "card_last_four": null
+    },
+    "discounts": [
+      "autopay",
+      "bundle"
+    ]
+  },
+  {
+    "account_id": "ACC-10010",
+    "name": "Patricia Wilson",
+    "email": "patricia.wilson@example.com",
+    "phone_contact": "+1-555-100-0010",
+    "billing_zip": "33139",
+    "join_date": "2026-01-01",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10010-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-010-1000",
+        "status": "active",
+        "activated_on": "2026-01-01"
+      },
+      {
+        "line_id": "LINE-10010-2",
+        "type": "home_internet",
+        "plan_id": "internet_100",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2026-01-01"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0070"
+    },
+    "discounts": [
+      "autopay",
+      "bundle"
+    ]
+  },
+  {
+    "account_id": "ACC-10016",
+    "name": "Susan Harris",
+    "email": "susan.harris@example.com",
+    "phone_contact": "+1-555-100-0016",
+    "billing_zip": "98101",
+    "join_date": "2020-02-07",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10016-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-016-1000",
+        "status": "active",
+        "activated_on": "2020-02-07"
+      },
+      {
+        "line_id": "LINE-10016-2",
+        "type": "home_internet",
+        "plan_id": "fiber_1000",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2020-02-07"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0112"
+    },
+    "discounts": [
+      "autopay",
+      "bundle"
+    ]
+  },
+  {
+    "account_id": "ACC-10019",
+    "name": "Paul Garcia",
+    "email": "paul.garcia@example.com",
+    "phone_contact": "+1-555-100-0019",
+    "billing_zip": "30303",
+    "join_date": "2023-04-17",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10019-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-019-1000",
+        "status": "active",
+        "activated_on": "2023-04-17"
+      },
+      {
+        "line_id": "LINE-10019-2",
+        "type": "home_internet",
+        "plan_id": "internet_100",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2023-04-17"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0133"
+    },
+    "discounts": [
+      "autopay",
+      "bundle",
+      "military"
+    ]
+  },
+  {
+    "account_id": "ACC-10009",
+    "name": "Jennifer Martinez",
+    "email": "jennifer.martinez@example.com",
+    "phone_contact": "+1-555-100-0009",
+    "billing_zip": "78701",
+    "join_date": "2022-10-01",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10009-1",
+        "type": "home_internet",
+        "plan_id": "fiber_1000",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2022-10-01"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0063"
+    },
+    "discounts": [
+      "autopay"
+    ]
+  },
+  {
+    "account_id": "ACC-10014",
+    "name": "Nancy Jackson",
+    "email": "nancy.jackson@example.com",
+    "phone_contact": "+1-555-100-0014",
+    "billing_zip": "53703",
+    "join_date": "2024-09-07",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10014-1",
+        "type": "home_internet",
+        "plan_id": "internet_100",
+        "phone_number": null,
+        "status": "active",
+        "activated_on": "2024-09-07"
+      }
+    ],
+    "payment": {
+      "method": "manual",
+      "card_last_four": null
+    },
+    "discounts": []
+  },
+  {
+    "account_id": "ACC-10006",
+    "name": "Robert Brown",
+    "email": "robert.brown@example.com",
+    "phone_contact": "+1-555-100-0006",
+    "billing_zip": "75201",
+    "join_date": "2019-12-21",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10006-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-006-1000",
+        "status": "active",
+        "activated_on": "2019-12-21"
+      },
+      {
+        "line_id": "LINE-10006-2",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-006-1001",
+        "status": "active",
+        "activated_on": "2019-12-21"
+      },
+      {
+        "line_id": "LINE-10006-3",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-006-1002",
+        "status": "active",
+        "activated_on": "2019-12-21"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0042"
+    },
+    "discounts": [
+      "autopay",
+      "family"
+    ]
+  },
+  {
+    "account_id": "ACC-10013",
+    "name": "Daniel Thomas",
+    "email": "daniel.thomas@example.com",
+    "phone_contact": "+1-555-100-0013",
+    "billing_zip": "85001",
+    "join_date": "2018-12-18",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10013-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-013-1000",
+        "status": "active",
+        "activated_on": "2018-12-18"
+      },
+      {
+        "line_id": "LINE-10013-2",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-013-1001",
+        "status": "active",
+        "activated_on": "2018-12-18"
+      },
+      {
+        "line_id": "LINE-10013-3",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-013-1002",
+        "status": "active",
+        "activated_on": "2018-12-18"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0091"
+    },
+    "discounts": [
+      "autopay",
+      "family"
+    ]
+  },
+  {
+    "account_id": "ACC-10007",
+    "name": "Linda Williams",
+    "email": "linda.williams@example.com",
+    "phone_contact": "+1-555-100-0007",
+    "billing_zip": "55401",
+    "join_date": "2020-07-08",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10007-1",
+        "type": "mobile",
+        "plan_id": "connect",
+        "phone_number": "+1-555-007-1000",
+        "status": "active",
+        "activated_on": "2020-07-08"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0049"
+    },
+    "discounts": [
+      "autopay",
+      "senior"
+    ]
+  },
+  {
+    "account_id": "ACC-10008",
+    "name": "Michael Davis",
+    "email": "michael.davis@example.com",
+    "phone_contact": "+1-555-100-0008",
+    "billing_zip": "20001",
+    "join_date": "2021-08-19",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10008-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-008-1000",
+        "status": "active",
+        "activated_on": "2021-08-19"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0056"
+    },
+    "discounts": [
+      "autopay",
+      "military"
+    ]
+  },
+  {
+    "account_id": "ACC-10012",
+    "name": "Barbara Anderson",
+    "email": "barbara.anderson@example.com",
+    "phone_contact": "+1-555-100-0012",
+    "billing_zip": "97201",
+    "join_date": "2023-05-26",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10012-1",
+        "type": "mobile",
+        "plan_id": "essential",
+        "phone_number": "+1-555-012-1000",
+        "status": "active",
+        "activated_on": "2023-05-26"
+      }
+    ],
+    "payment": {
+      "method": "autopay_bank",
+      "card_last_four": null
+    },
+    "discounts": [
+      "autopay",
+      "senior"
+    ]
+  },
+  {
+    "account_id": "ACC-10017",
+    "name": "Steven Martin",
+    "email": "steven.martin@example.com",
+    "phone_contact": "+1-555-100-0017",
+    "billing_zip": "73301",
+    "join_date": "2026-01-25",
+    "status": "active",
+    "services": [
+      {
+        "line_id": "LINE-10017-1",
+        "type": "mobile",
+        "plan_id": "unlimited",
+        "phone_number": "+1-555-017-1000",
+        "status": "active",
+        "activated_on": "2026-01-25"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0119"
+    },
+    "discounts": [
+      "autopay"
+    ]
+  },
+  {
+    "account_id": "ACC-10020",
+    "name": "Lisa Robinson",
+    "email": "lisa.robinson@example.com",
+    "phone_contact": "+1-555-100-0020",
+    "billing_zip": "27601",
+    "join_date": "2026-03-23",
+    "status": "pending",
+    "services": [
+      {
+        "line_id": "LINE-10020-1",
+        "type": "mobile",
+        "plan_id": "essential",
+        "phone_number": "+1-555-020-1000",
+        "status": "pending",
+        "activated_on": "2026-03-23"
+      }
+    ],
+    "payment": {
+      "method": "autopay_card",
+      "card_last_four": "0140"
+    },
+    "discounts": []
+  }
+]

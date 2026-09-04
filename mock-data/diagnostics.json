@@ -1,0 +1,191 @@
+{
+  "ACC-10001": {
+    "last_test_date": "2026-05-10",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -85,
+      "data_used_gb_this_cycle": 3.3
+    }
+  },
+  "ACC-10003": {
+    "last_test_date": "2026-05-13",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -78,
+      "data_used_gb_this_cycle": 6.8
+    }
+  },
+  "ACC-10004": {
+    "last_test_date": "2026-05-08",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -72,
+      "data_used_gb_this_cycle": 6.7
+    }
+  },
+  "ACC-10011": {
+    "last_test_date": "2026-05-10",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -85,
+      "data_used_gb_this_cycle": 2.5
+    }
+  },
+  "ACC-10015": {
+    "last_test_date": "2026-05-08",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 7.1
+    }
+  },
+  "ACC-10018": {
+    "last_test_date": "2026-05-07",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -72,
+      "data_used_gb_this_cycle": 5.4
+    }
+  },
+  "ACC-10002": {
+    "last_test_date": "2026-05-07",
+    "home_internet": {
+      "wired_download_mbps": 492.9,
+      "wired_upload_mbps": 342.9,
+      "wifi_download_mbps": 362.2,
+      "wifi_upload_mbps": 303.9
+    },
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 2.5
+    }
+  },
+  "ACC-10005": {
+    "last_test_date": "2026-05-12",
+    "home_internet": {
+      "wired_download_mbps": 42.0,
+      "wired_upload_mbps": 7.3,
+      "wifi_download_mbps": 39.9,
+      "wifi_upload_mbps": 6.0
+    },
+    "mobile": {
+      "signal_strength_dbm": -65,
+      "data_used_gb_this_cycle": 6.2
+    }
+  },
+  "ACC-10010": {
+    "last_test_date": "2026-05-09",
+    "home_internet": {
+      "wired_download_mbps": 92.4,
+      "wired_upload_mbps": 20.0,
+      "wifi_download_mbps": 78.5,
+      "wifi_upload_mbps": 15.9
+    },
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 8.0
+    }
+  },
+  "ACC-10016": {
+    "last_test_date": "2026-05-08",
+    "home_internet": {
+      "wired_download_mbps": 558.2,
+      "wired_upload_mbps": 303.4,
+      "wifi_download_mbps": 491.3,
+      "wifi_upload_mbps": 264.1
+    },
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 6.1
+    }
+  },
+  "ACC-10019": {
+    "last_test_date": "2026-05-11",
+    "home_internet": {
+      "wired_download_mbps": 96.5,
+      "wired_upload_mbps": 19.4,
+      "wifi_download_mbps": 90.6,
+      "wifi_upload_mbps": 17.8
+    },
+    "mobile": {
+      "signal_strength_dbm": -78,
+      "data_used_gb_this_cycle": 7.8
+    }
+  },
+  "ACC-10009": {
+    "last_test_date": "2026-05-10",
+    "home_internet": {
+      "wired_download_mbps": 916.0,
+      "wired_upload_mbps": 993.8,
+      "wifi_download_mbps": 833.9,
+      "wifi_upload_mbps": 821.8
+    },
+    "mobile": null
+  },
+  "ACC-10014": {
+    "last_test_date": "2026-05-13",
+    "home_internet": {
+      "wired_download_mbps": 101.4,
+      "wired_upload_mbps": 19.6,
+      "wifi_download_mbps": 90.7,
+      "wifi_upload_mbps": 16.3
+    },
+    "mobile": null
+  },
+  "ACC-10006": {
+    "last_test_date": "2026-05-13",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 2.9
+    }
+  },
+  "ACC-10013": {
+    "last_test_date": "2026-05-09",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -65,
+      "data_used_gb_this_cycle": 7.5
+    }
+  },
+  "ACC-10007": {
+    "last_test_date": "2026-05-12",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -72,
+      "data_used_gb_this_cycle": 0.9
+    }
+  },
+  "ACC-10008": {
+    "last_test_date": "2026-05-12",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -65,
+      "data_used_gb_this_cycle": 6.0
+    }
+  },
+  "ACC-10012": {
+    "last_test_date": "2026-05-11",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -92,
+      "data_used_gb_this_cycle": 6.2
+    }
+  },
+  "ACC-10017": {
+    "last_test_date": "2026-05-11",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -85,
+      "data_used_gb_this_cycle": 7.6
+    }
+  },
+  "ACC-10020": {
+    "last_test_date": "2026-05-07",
+    "home_internet": null,
+    "mobile": {
+      "signal_strength_dbm": -78,
+      "data_used_gb_this_cycle": 4.5
+    }
+  }
+}

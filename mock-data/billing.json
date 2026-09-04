@@ -1,0 +1,1462 @@
+[
+  {
+    "bill_id": "BILL-10001-202603",
+    "account_id": "ACC-10001",
+    "billing_period_start": "2026-03-04",
+    "billing_period_end": "2026-04-03",
+    "issue_date": "2026-03-04",
+    "due_date": "2026-03-25",
+    "subtotal": 25,
+    "discounts": -5,
+    "taxes": 2.0,
+    "total": 22.0,
+    "status": "paid",
+    "paid_date": "2026-03-22",
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10001-202604",
+    "account_id": "ACC-10001",
+    "billing_period_start": "2026-04-04",
+    "billing_period_end": "2026-05-03",
+    "issue_date": "2026-04-04",
+    "due_date": "2026-04-25",
+    "subtotal": 25,
+    "discounts": -5,
+    "taxes": 2.0,
+    "total": 22.0,
+    "status": "paid",
+    "paid_date": "2026-04-23",
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10001-202605",
+    "account_id": "ACC-10001",
+    "billing_period_start": "2026-05-04",
+    "billing_period_end": "2026-06-03",
+    "issue_date": "2026-05-04",
+    "due_date": "2026-05-25",
+    "subtotal": 25,
+    "discounts": -5,
+    "taxes": 2.0,
+    "total": 22.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10003-202603",
+    "account_id": "ACC-10003",
+    "billing_period_start": "2026-03-24",
+    "billing_period_end": "2026-04-23",
+    "issue_date": "2026-03-24",
+    "due_date": "2026-04-14",
+    "subtotal": 45,
+    "discounts": 0,
+    "taxes": 4.5,
+    "total": 49.5,
+    "status": "paid",
+    "paid_date": "2026-04-14",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 4.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10003-202604",
+    "account_id": "ACC-10003",
+    "billing_period_start": "2026-04-24",
+    "billing_period_end": "2026-05-23",
+    "issue_date": "2026-04-24",
+    "due_date": "2026-05-15",
+    "subtotal": 45,
+    "discounts": 0,
+    "taxes": 4.5,
+    "total": 49.5,
+    "status": "unpaid",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 4.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10004-202603",
+    "account_id": "ACC-10004",
+    "billing_period_start": "2026-03-08",
+    "billing_period_end": "2026-04-07",
+    "issue_date": "2026-03-08",
+    "due_date": "2026-03-29",
+    "subtotal": 25,
+    "discounts": 0,
+    "taxes": 2.5,
+    "total": 27.5,
+    "status": "overdue",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10004-202604",
+    "account_id": "ACC-10004",
+    "billing_period_start": "2026-04-08",
+    "billing_period_end": "2026-05-07",
+    "issue_date": "2026-04-08",
+    "due_date": "2026-04-29",
+    "subtotal": 25,
+    "discounts": 0,
+    "taxes": 2.5,
+    "total": 27.5,
+    "status": "overdue",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10004-202605",
+    "account_id": "ACC-10004",
+    "billing_period_start": "2026-05-08",
+    "billing_period_end": "2026-06-07",
+    "issue_date": "2026-05-08",
+    "due_date": "2026-05-29",
+    "subtotal": 25,
+    "discounts": 0,
+    "taxes": 2.5,
+    "total": 27.5,
+    "status": "unpaid",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 2.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10011-202603",
+    "account_id": "ACC-10011",
+    "billing_period_start": "2026-03-05",
+    "billing_period_end": "2026-04-04",
+    "issue_date": "2026-03-05",
+    "due_date": "2026-03-26",
+    "subtotal": 65,
+    "discounts": -5,
+    "taxes": 6.0,
+    "total": 66.0,
+    "status": "paid",
+    "paid_date": "2026-03-23",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10011-202604",
+    "account_id": "ACC-10011",
+    "billing_period_start": "2026-04-05",
+    "billing_period_end": "2026-05-04",
+    "issue_date": "2026-04-05",
+    "due_date": "2026-04-26",
+    "subtotal": 65,
+    "discounts": -5,
+    "taxes": 6.0,
+    "total": 66.0,
+    "status": "paid",
+    "paid_date": "2026-04-26",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10011-202605",
+    "account_id": "ACC-10011",
+    "billing_period_start": "2026-05-05",
+    "billing_period_end": "2026-06-04",
+    "issue_date": "2026-05-05",
+    "due_date": "2026-05-26",
+    "subtotal": 65,
+    "discounts": -5,
+    "taxes": 6.0,
+    "total": 66.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10015-202603",
+    "account_id": "ACC-10015",
+    "billing_period_start": "2026-03-04",
+    "billing_period_end": "2026-04-03",
+    "issue_date": "2026-03-04",
+    "due_date": "2026-03-25",
+    "subtotal": 65,
+    "discounts": 0,
+    "taxes": 6.5,
+    "total": 71.5,
+    "status": "paid",
+    "paid_date": "2026-03-27",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10015-202604",
+    "account_id": "ACC-10015",
+    "billing_period_start": "2026-04-04",
+    "billing_period_end": "2026-05-03",
+    "issue_date": "2026-04-04",
+    "due_date": "2026-04-25",
+    "subtotal": 65,
+    "discounts": 0,
+    "taxes": 6.5,
+    "total": 71.5,
+    "status": "overdue",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10015-202605",
+    "account_id": "ACC-10015",
+    "billing_period_start": "2026-05-04",
+    "billing_period_end": "2026-06-03",
+    "issue_date": "2026-05-04",
+    "due_date": "2026-05-25",
+    "subtotal": 65,
+    "discounts": 0,
+    "taxes": 6.5,
+    "total": 71.5,
+    "status": "unpaid",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10018-202603",
+    "account_id": "ACC-10018",
+    "billing_period_start": "2026-03-24",
+    "billing_period_end": "2026-04-23",
+    "issue_date": "2026-03-24",
+    "due_date": "2026-04-14",
+    "subtotal": 45,
+    "discounts": -5,
+    "taxes": 4.0,
+    "total": 44.0,
+    "status": "paid",
+    "paid_date": "2026-04-11",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 4.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10018-202604",
+    "account_id": "ACC-10018",
+    "billing_period_start": "2026-04-24",
+    "billing_period_end": "2026-05-23",
+    "issue_date": "2026-04-24",
+    "due_date": "2026-05-15",
+    "subtotal": 45,
+    "discounts": -5,
+    "taxes": 4.0,
+    "total": 44.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 4.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10002-202603",
+    "account_id": "ACC-10002",
+    "billing_period_start": "2026-03-03",
+    "billing_period_end": "2026-04-02",
+    "issue_date": "2026-03-03",
+    "due_date": "2026-03-24",
+    "subtotal": 145,
+    "discounts": -20,
+    "taxes": 12.5,
+    "total": 137.5,
+    "status": "paid",
+    "paid_date": "2026-03-24",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 12.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10002-202604",
+    "account_id": "ACC-10002",
+    "billing_period_start": "2026-04-03",
+    "billing_period_end": "2026-05-02",
+    "issue_date": "2026-04-03",
+    "due_date": "2026-04-24",
+    "subtotal": 145,
+    "discounts": -20,
+    "taxes": 12.5,
+    "total": 137.5,
+    "status": "paid",
+    "paid_date": "2026-04-21",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 12.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10002-202605",
+    "account_id": "ACC-10002",
+    "billing_period_start": "2026-05-03",
+    "billing_period_end": "2026-06-02",
+    "issue_date": "2026-05-03",
+    "due_date": "2026-05-24",
+    "subtotal": 145,
+    "discounts": -20,
+    "taxes": 12.5,
+    "total": 137.5,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 12.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10005-202603",
+    "account_id": "ACC-10005",
+    "billing_period_start": "2026-03-14",
+    "billing_period_end": "2026-04-13",
+    "issue_date": "2026-03-14",
+    "due_date": "2026-04-04",
+    "subtotal": 115,
+    "discounts": -20,
+    "taxes": 9.5,
+    "total": 104.5,
+    "status": "paid",
+    "paid_date": "2026-04-04",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 9.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10005-202604",
+    "account_id": "ACC-10005",
+    "billing_period_start": "2026-04-14",
+    "billing_period_end": "2026-05-13",
+    "issue_date": "2026-04-14",
+    "due_date": "2026-05-05",
+    "subtotal": 115,
+    "discounts": -20,
+    "taxes": 9.5,
+    "total": 104.5,
+    "status": "paid",
+    "paid_date": "2026-05-03",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 9.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10010-202603",
+    "account_id": "ACC-10010",
+    "billing_period_start": "2026-03-01",
+    "billing_period_end": "2026-03-31",
+    "issue_date": "2026-03-01",
+    "due_date": "2026-03-22",
+    "subtotal": 95,
+    "discounts": -20,
+    "taxes": 7.5,
+    "total": 82.5,
+    "status": "paid",
+    "paid_date": "2026-03-20",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 7.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10010-202604",
+    "account_id": "ACC-10010",
+    "billing_period_start": "2026-04-01",
+    "billing_period_end": "2026-04-30",
+    "issue_date": "2026-04-01",
+    "due_date": "2026-04-22",
+    "subtotal": 95,
+    "discounts": -20,
+    "taxes": 7.5,
+    "total": 82.5,
+    "status": "paid",
+    "paid_date": "2026-04-21",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 7.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10010-202605",
+    "account_id": "ACC-10010",
+    "billing_period_start": "2026-05-01",
+    "billing_period_end": "2026-05-31",
+    "issue_date": "2026-05-01",
+    "due_date": "2026-05-22",
+    "subtotal": 95,
+    "discounts": -20,
+    "taxes": 7.5,
+    "total": 82.5,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 7.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10016-202603",
+    "account_id": "ACC-10016",
+    "billing_period_start": "2026-03-07",
+    "billing_period_end": "2026-04-06",
+    "issue_date": "2026-03-07",
+    "due_date": "2026-03-28",
+    "subtotal": 125,
+    "discounts": -20,
+    "taxes": 10.5,
+    "total": 115.5,
+    "status": "paid",
+    "paid_date": "2026-03-28",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 10.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10016-202604",
+    "account_id": "ACC-10016",
+    "billing_period_start": "2026-04-07",
+    "billing_period_end": "2026-05-06",
+    "issue_date": "2026-04-07",
+    "due_date": "2026-04-28",
+    "subtotal": 125,
+    "discounts": -20,
+    "taxes": 10.5,
+    "total": 115.5,
+    "status": "paid",
+    "paid_date": "2026-04-28",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 10.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10016-202605",
+    "account_id": "ACC-10016",
+    "billing_period_start": "2026-05-07",
+    "billing_period_end": "2026-06-06",
+    "issue_date": "2026-05-07",
+    "due_date": "2026-05-28",
+    "subtotal": 125,
+    "discounts": -20,
+    "taxes": 10.5,
+    "total": 115.5,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 10.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10019-202603",
+    "account_id": "ACC-10019",
+    "billing_period_start": "2026-03-17",
+    "billing_period_end": "2026-04-16",
+    "issue_date": "2026-03-17",
+    "due_date": "2026-04-07",
+    "subtotal": 95,
+    "discounts": -26.75,
+    "taxes": 6.83,
+    "total": 75.08,
+    "status": "paid",
+    "paid_date": "2026-04-06",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Military discount",
+        "amount": -6.75
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.83
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10019-202604",
+    "account_id": "ACC-10019",
+    "billing_period_start": "2026-04-17",
+    "billing_period_end": "2026-05-16",
+    "issue_date": "2026-04-17",
+    "due_date": "2026-05-08",
+    "subtotal": 95,
+    "discounts": -26.75,
+    "taxes": 6.83,
+    "total": 75.08,
+    "status": "paid",
+    "paid_date": "2026-05-06",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Bundle discount",
+        "amount": -15
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Military discount",
+        "amount": -6.75
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.83
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10009-202603",
+    "account_id": "ACC-10009",
+    "billing_period_start": "2026-03-01",
+    "billing_period_end": "2026-03-31",
+    "issue_date": "2026-03-01",
+    "due_date": "2026-03-22",
+    "subtotal": 80,
+    "discounts": 0,
+    "taxes": 8.0,
+    "total": 88.0,
+    "status": "paid",
+    "paid_date": "2026-03-22",
+    "line_items": [
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 8.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10009-202604",
+    "account_id": "ACC-10009",
+    "billing_period_start": "2026-04-01",
+    "billing_period_end": "2026-04-30",
+    "issue_date": "2026-04-01",
+    "due_date": "2026-04-22",
+    "subtotal": 80,
+    "discounts": 0,
+    "taxes": 8.0,
+    "total": 88.0,
+    "status": "paid",
+    "paid_date": "2026-04-21",
+    "line_items": [
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 8.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10009-202605",
+    "account_id": "ACC-10009",
+    "billing_period_start": "2026-05-01",
+    "billing_period_end": "2026-05-31",
+    "issue_date": "2026-05-01",
+    "due_date": "2026-05-22",
+    "subtotal": 80,
+    "discounts": 0,
+    "taxes": 8.0,
+    "total": 88.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Fiber 1000 plan",
+        "amount": 80
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 8.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10014-202603",
+    "account_id": "ACC-10014",
+    "billing_period_start": "2026-03-07",
+    "billing_period_end": "2026-04-06",
+    "issue_date": "2026-03-07",
+    "due_date": "2026-03-28",
+    "subtotal": 50,
+    "discounts": 0,
+    "taxes": 5.0,
+    "total": 55.0,
+    "status": "overdue",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 5.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10014-202604",
+    "account_id": "ACC-10014",
+    "billing_period_start": "2026-04-07",
+    "billing_period_end": "2026-05-06",
+    "issue_date": "2026-04-07",
+    "due_date": "2026-04-28",
+    "subtotal": 50,
+    "discounts": 0,
+    "taxes": 5.0,
+    "total": 55.0,
+    "status": "paid",
+    "paid_date": "2026-05-02",
+    "line_items": [
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 5.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10014-202605",
+    "account_id": "ACC-10014",
+    "billing_period_start": "2026-05-07",
+    "billing_period_end": "2026-06-06",
+    "issue_date": "2026-05-07",
+    "due_date": "2026-05-28",
+    "subtotal": 50,
+    "discounts": 0,
+    "taxes": 5.0,
+    "total": 55.0,
+    "status": "unpaid",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Internet 100 plan",
+        "amount": 50
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 5.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10006-202603",
+    "account_id": "ACC-10006",
+    "billing_period_start": "2026-03-21",
+    "billing_period_end": "2026-04-20",
+    "issue_date": "2026-03-21",
+    "due_date": "2026-04-11",
+    "subtotal": 110,
+    "discounts": -15,
+    "taxes": 9.5,
+    "total": 104.5,
+    "status": "paid",
+    "paid_date": "2026-04-09",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Connect plan",
+        "amount": 35
+      },
+      {
+        "description": "Connect plan",
+        "amount": 30
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -15
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 9.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10006-202604",
+    "account_id": "ACC-10006",
+    "billing_period_start": "2026-04-21",
+    "billing_period_end": "2026-05-20",
+    "issue_date": "2026-04-21",
+    "due_date": "2026-05-12",
+    "subtotal": 110,
+    "discounts": -15,
+    "taxes": 9.5,
+    "total": 104.5,
+    "status": "paid",
+    "paid_date": "2026-05-11",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Connect plan",
+        "amount": 35
+      },
+      {
+        "description": "Connect plan",
+        "amount": 30
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -15
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 9.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10013-202603",
+    "account_id": "ACC-10013",
+    "billing_period_start": "2026-03-18",
+    "billing_period_end": "2026-04-17",
+    "issue_date": "2026-03-18",
+    "due_date": "2026-04-08",
+    "subtotal": 150,
+    "discounts": -15,
+    "taxes": 13.5,
+    "total": 148.5,
+    "status": "paid",
+    "paid_date": "2026-04-06",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Unlimited plan",
+        "amount": 55
+      },
+      {
+        "description": "Connect plan",
+        "amount": 30
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -15
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 13.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10013-202604",
+    "account_id": "ACC-10013",
+    "billing_period_start": "2026-04-18",
+    "billing_period_end": "2026-05-17",
+    "issue_date": "2026-04-18",
+    "due_date": "2026-05-09",
+    "subtotal": 150,
+    "discounts": -15,
+    "taxes": 13.5,
+    "total": 148.5,
+    "status": "paid",
+    "paid_date": "2026-05-07",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Unlimited plan",
+        "amount": 55
+      },
+      {
+        "description": "Connect plan",
+        "amount": 30
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -15
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 13.5
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10007-202603",
+    "account_id": "ACC-10007",
+    "billing_period_start": "2026-03-08",
+    "billing_period_end": "2026-04-07",
+    "issue_date": "2026-03-08",
+    "due_date": "2026-03-29",
+    "subtotal": 45,
+    "discounts": -15,
+    "taxes": 3.0,
+    "total": 33.0,
+    "status": "paid",
+    "paid_date": "2026-03-28",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Senior discount",
+        "amount": -10
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 3.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10007-202604",
+    "account_id": "ACC-10007",
+    "billing_period_start": "2026-04-08",
+    "billing_period_end": "2026-05-07",
+    "issue_date": "2026-04-08",
+    "due_date": "2026-04-29",
+    "subtotal": 45,
+    "discounts": -15,
+    "taxes": 3.0,
+    "total": 33.0,
+    "status": "paid",
+    "paid_date": "2026-04-27",
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Senior discount",
+        "amount": -10
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 3.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10007-202605",
+    "account_id": "ACC-10007",
+    "billing_period_start": "2026-05-08",
+    "billing_period_end": "2026-06-07",
+    "issue_date": "2026-05-08",
+    "due_date": "2026-05-29",
+    "subtotal": 45,
+    "discounts": -15,
+    "taxes": 3.0,
+    "total": 33.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Connect plan",
+        "amount": 45
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Senior discount",
+        "amount": -10
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 3.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10008-202603",
+    "account_id": "ACC-10008",
+    "billing_period_start": "2026-03-19",
+    "billing_period_end": "2026-04-18",
+    "issue_date": "2026-03-19",
+    "due_date": "2026-04-09",
+    "subtotal": 65,
+    "discounts": -14.75,
+    "taxes": 5.03,
+    "total": 55.28,
+    "status": "paid",
+    "paid_date": "2026-04-09",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Military discount",
+        "amount": -9.75
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 5.03
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10008-202604",
+    "account_id": "ACC-10008",
+    "billing_period_start": "2026-04-19",
+    "billing_period_end": "2026-05-18",
+    "issue_date": "2026-04-19",
+    "due_date": "2026-05-10",
+    "subtotal": 65,
+    "discounts": -14.75,
+    "taxes": 5.03,
+    "total": 55.28,
+    "status": "paid",
+    "paid_date": "2026-05-09",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Military discount",
+        "amount": -9.75
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 5.03
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10012-202603",
+    "account_id": "ACC-10012",
+    "billing_period_start": "2026-03-26",
+    "billing_period_end": "2026-04-25",
+    "issue_date": "2026-03-26",
+    "due_date": "2026-04-16",
+    "subtotal": 25,
+    "discounts": -15,
+    "taxes": 1.0,
+    "total": 11.0,
+    "status": "paid",
+    "paid_date": "2026-04-15",
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Senior discount",
+        "amount": -10
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 1.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10012-202604",
+    "account_id": "ACC-10012",
+    "billing_period_start": "2026-04-26",
+    "billing_period_end": "2026-05-25",
+    "issue_date": "2026-04-26",
+    "due_date": "2026-05-17",
+    "subtotal": 25,
+    "discounts": -15,
+    "taxes": 1.0,
+    "total": 11.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Essential plan",
+        "amount": 25
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Senior discount",
+        "amount": -10
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 1.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10017-202603",
+    "account_id": "ACC-10017",
+    "billing_period_start": "2026-03-25",
+    "billing_period_end": "2026-04-24",
+    "issue_date": "2026-03-25",
+    "due_date": "2026-04-15",
+    "subtotal": 65,
+    "discounts": -5,
+    "taxes": 6.0,
+    "total": 66.0,
+    "status": "paid",
+    "paid_date": "2026-04-14",
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.0
+      }
+    ]
+  },
+  {
+    "bill_id": "BILL-10017-202604",
+    "account_id": "ACC-10017",
+    "billing_period_start": "2026-04-25",
+    "billing_period_end": "2026-05-24",
+    "issue_date": "2026-04-25",
+    "due_date": "2026-05-16",
+    "subtotal": 65,
+    "discounts": -5,
+    "taxes": 6.0,
+    "total": 66.0,
+    "status": "scheduled",
+    "paid_date": null,
+    "line_items": [
+      {
+        "description": "Unlimited plan",
+        "amount": 65
+      },
+      {
+        "description": "Autopay discount",
+        "amount": -5
+      },
+      {
+        "description": "Taxes and fees",
+        "amount": 6.0
+      }
+    ]
+  }
+]
