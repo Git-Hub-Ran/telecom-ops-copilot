@@ -29,8 +29,9 @@ Each customer message passes through five states in sequence:
    see Known constraints below.
 3. **ActState**: calls Python tool functions directly for billing, account, and
    technical paths; invokes a gpt-4o Foundry agent with file_search for info queries.
-4. **EscalateState** (gpt-4o Foundry agent): assembles and persists a human handoff
-   ticket when ActState returns unresolved or when routing bypasses Act entirely.
+4. **EscalateState** (gpt-4o Foundry agent): assembles a human handoff ticket and
+   appends it to a local file when ActState returns unresolved or when routing
+   bypasses Act entirely.
 5. **RespondState** (gpt-4o Foundry agent): generates the final customer-facing
    message from the full context accumulated across prior states.
 
