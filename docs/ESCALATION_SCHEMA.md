@@ -1,5 +1,19 @@
 # Escalation Payload Schema
 
+**Note:** This is the design contract for the payload, not a description of a
+delivered system. The payload shape below is implemented and the fields are produced.
+The delivery is not: `create_escalation_ticket` appends a line to a local
+`data/escalations.jsonl` and nothing reads it, so no human support rep receives a
+ticket. The auditing, evaluation and continuous improvement claims under "What this
+schema enables" are design intentions rather than working features; no tooling reads
+the file, and the eval scores whether an escalation happened rather than whether the
+ticket was useful. Two of the five triggers under "When the agent escalates" are not
+implemented: there is no turn counter behind "ambiguous after multiple turns", and
+there is no safety-trip escalation path. `customer.verified` is hardcoded false on
+every ticket rather than evaluated, and the example payload shows a populated name and
+phone, which real tickets leave empty by design. README's Known constraints records
+what is actually true.
+
 When the agent decides to escalate a customer interaction to a human, it produces a structured JSON payload. This is the **contract between the AI agent and the human support rep**.
 
 The goal is that the human picks up the conversation already oriented: they know who the customer is, what they were asking about, what the agent tried, what evidence the agent used, and how the customer was feeling. No more "cold handoffs" where the customer has to explain everything again.

@@ -15,7 +15,7 @@ Translated: a mid-size US telecom (50,000 subscribers, around 5,000 monthly supp
 
 ## Who is the user
 
-The direct user of the Operations Copilot is the **end customer** of a mid-size US telecom. The system ships as a customer-facing pilot: customers interact with the Streamlit chat interface directly to get billing summaries, account details, troubleshooting guidance, and general plan information.
+The direct user of the Operations Copilot is the **end customer** of a mid-size US telecom. It is built as a customer-facing pilot: customers would interact with the Streamlit chat interface directly to get billing summaries, account details, troubleshooting guidance, and general plan information. Nothing is deployed to real customers. The app runs locally with Device Code sign-in.
 
 Containment is achieved through bounded tooling and escalation, not a human in the loop:
 
@@ -35,7 +35,7 @@ These numbers are locked before optimization starts. Targets are calibrated agai
 | Handle time reduction on escalated cases | 20 percent | Typical impact of structured handoff and pre-fetched data |
 | Intent classification accuracy | over 90 percent | Floor for reliable deflection: if classification is wrong, downstream routing fails |
 | Tool selection correctness | over 85 percent | Once classification is right, the right tool must be called |
-| Grounding faithfulness (RAGAS) | over 0.90 average | Customers and reviewers need to trust the answer |
+| Grounding faithfulness (RAGAS) | over 0.90 average, not computed | Customers and reviewers need to trust the answer |
 | Escalation precision | over 85 percent | Avoid escalating cases the agent should handle |
 | Escalation recall | over 80 percent | Catch the cases that need a human |
 | Average response latency | under 5 seconds | UX threshold for chat-based support |

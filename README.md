@@ -29,8 +29,9 @@ Each customer message passes through five states in sequence:
    see Known constraints below.
 3. **ActState**: calls Python tool functions directly for billing, account, and
    technical paths; invokes a gpt-4o Foundry agent with file_search for info queries.
-4. **EscalateState** (gpt-4o Foundry agent): assembles and persists a human handoff
-   ticket when ActState returns unresolved or when routing bypasses Act entirely.
+4. **EscalateState** (gpt-4o Foundry agent): assembles a human handoff ticket and
+   appends it to a local file when ActState returns unresolved or when routing
+   bypasses Act entirely.
 5. **RespondState** (gpt-4o Foundry agent): generates the final customer-facing
    message from the full context accumulated across prior states.
 
@@ -114,6 +115,7 @@ Full analysis in [`eval/BASELINE_NOTES.md`](eval/BASELINE_NOTES.md).
 | Escalation precision | 92.3% (12/13, small-n) | >=85% | PASS |
 | Escalation recall | 85.7% (12/14, small-n) | >=80% | PASS |
 | Latency p95 | ~16s | <=5s | FAIL (structural, see below) |
+| Grounding faithfulness | not computed | >=0.90 | -- |
 | Deflection rate | 92.9% | 30-40% | -- |
 
 Figures are from run 9 (2026-08-29), the first run in which all four deployed Foundry
@@ -166,6 +168,14 @@ than escalation are counted as escalation-recall false negatives; that count was
 sample size.
 
 **No identity verification:** account IDs are accepted from customer messages without authentication.
+
+**Escalation tickets go to a local file:** `create_escalation_ticket` appends to
+`data/escalations.jsonl` and nothing consumes it; there is no CRM or ticketing system
+behind it. See "10. Production path" in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+**Not production ready:** the app runs as a local Streamlit process with Device Code
+sign-in, which suits a pilot rather than live traffic. "10. Production path" in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) lists what a deployment would need.
 
 ## Project structure
 
