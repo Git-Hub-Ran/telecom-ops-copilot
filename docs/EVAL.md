@@ -334,5 +334,6 @@ Acknowledged limitations of this eval (not failures, just scope):
 - **Adversarial creativity**: the 30 adversarial cases are author-written. Real attackers (or determined customers) are more creative. A production system would need ongoing red-teaming.
 - **A/B comparison of LLM choices**: we picked gpt-4o-mini and gpt-4o based on cost and quality. We do not compare to alternatives like gpt-4o-mini-2 or other vendors.
 - **Production load testing**: the eval measures correctness and latency per query in isolation. It does not measure behavior under concurrent load.
+- **Model provenance**: eval runs do not record the model or version they were measured on, so results are not traceable to a specific deployment. Open item.
 
 These would be addressed in a real production deployment. The current focus is on the engineering of the agent itself, not the surrounding infrastructure.
