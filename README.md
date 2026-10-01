@@ -154,9 +154,12 @@ requires replacing the polling Agents API with streaming Azure OpenAI Chat Compl
 for agents that do not use file_search. This is a documented architectural tradeoff,
 not a tuning problem.
 
-**Model deprecation:** gpt-4o and gpt-4o-mini retire October 1 2026. Before that
-date, update `CLASSIFIER_MODEL`, `ACT_MODEL`, `ESCALATE_MODEL`, and `RESPOND_MODEL`
-in `.env` to point to supported model deployments.
+**Model deprecation:** this project runs gpt-4o version 2024-11-20 and gpt-4o-mini
+version 2024-07-18. Both retire April 14 2027, with gpt-5.1 as the stated
+replacement. The earlier October 1 2026 date applies to gpt-4o version 2024-05-13,
+which this project does not use. Before April 14 2027, update `CLASSIFIER_MODEL`,
+`ACT_MODEL`, `ESCALATE_MODEL`, and `RESPOND_MODEL` in `.env` to point to supported
+model deployments.
 
 **Intent accuracy ceiling:** Further refinement of the classifier prompt risks
 regressions on boundary cases. Injection attempts are never complied with: they

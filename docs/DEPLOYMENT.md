@@ -197,8 +197,11 @@ To apply a prompt update:
 
 ## 9. Model deprecation
 
-`gpt-4o` and `gpt-4o-mini` retire **October 1 2026**. Before that date,
-update the model deployment names in `.env`:
+This project runs `gpt-4o` version 2024-11-20 and `gpt-4o-mini` version 2024-07-18.
+Both retire **April 14 2027**, with gpt-5.1 as the stated replacement. The earlier
+October 1 2026 retirement applies to `gpt-4o` version 2024-05-13, which this project
+does not use, so that date is not a deadline here. Before April 14 2027, update the
+model deployment names in `.env`:
 
 ```
 CLASSIFIER_MODEL=<replacement-model-deployment-name>
