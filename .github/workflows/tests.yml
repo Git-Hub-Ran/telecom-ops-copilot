@@ -28,8 +28,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      # Coverage measured 92.01% when this gate was added, so the 90% floor has
+      # about two points of headroom. src/ui/app.py is the thinnest module at 71%.
       - name: Run tests
-        run: pytest tests/ -v
+        run: pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=90
 
       # Enforces the style rule in CLAUDE.md. Everything the check skips is
       # skipped on a stated principle rather than a list of files, so adding a
